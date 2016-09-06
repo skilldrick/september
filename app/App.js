@@ -2,6 +2,7 @@
 import React, { Component } from 'react';
 import { render } from 'react-dom';
 
+import Footer from './Footer';
 import songPromise from './song';
 
 
@@ -28,7 +29,12 @@ class App extends Component {
 
   renderEnabled() {
     return (
-      <div>Loaded!</div>
+      <div>
+        <button onClick={() => this.clock.start()}>Play!</button>
+        <button onClick={() => this.clock.stop()}>Stop!</button>
+
+        <Footer />
+      </div>
     );
   }
 
@@ -41,12 +47,12 @@ class App extends Component {
   }
 
   componentDidMount() {
-    songPromise.then(song => {
+    songPromise.then(clock => {
+      this.clock = clock;
+
       this.setState({
         loaded: true
       });
-
-      window.song = song;
     });
   }
 }
