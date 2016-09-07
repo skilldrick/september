@@ -47,8 +47,10 @@ class App extends Component {
   }
 
   componentDidMount() {
-    songPromise.then(clock => {
-      this.clock = clock;
+    songPromise.then(song => {
+      window.addEventListener('keydown', song.keydown);
+
+      this.clock = song.clock;
 
       this.setState({
         loaded: true

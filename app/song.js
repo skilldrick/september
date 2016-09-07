@@ -1,7 +1,7 @@
 import getAudioBuffer from 'sine/ajax';
 import { ctx, getCurrentTime } from 'sine/audio';
 import { createBufferSource, createGain } from 'sine/nodes';
-import { connect, Node } from 'sine/util';
+import { connect, Node, semitoneToRate } from 'sine/util';
 import clock from 'sine/clock';
 import { FmSynth } from 'sine/synth';
 import { SingleBufferSampler } from 'sine/sampler';
@@ -12,13 +12,47 @@ import Scheduler from 'sine/scheduler';
 const loadInitialBuffers = () => {
   const fileNames = {
     september: 'september-acapella.mp3',
-    cissy: 'cissy-strut-start.mp3'
+    cissy: 'cissy-strut-start.mp3',
+    chic: 'chic.mp3'
   };
 
   // Returns a Promise of an object of buffer names to buffers
   return Promise.all(_.toPairs(fileNames).map(([name, fileName]) =>
     getAudioBuffer(fileName).then(buff => [name, buff])
   )).then(bufferArray => _.fromPairs(bufferArray));
+}
+
+
+class CissyBass extends Node {
+  pattern = "11.11.11.10..08..08.10.08.06.01..03..03"
+  constructor(cissyBuffer) {
+    super();
+
+    this.sampler = new SingleBufferSampler(cissyBuffer);
+
+    connect(this.sampler, this.output);
+  }
+
+  subBeats = 2
+  loopLength = 16
+
+  onBeat(beat, whenFunc, lengthFunc) {
+    for (let subBeat = 0; subBeat < this.subBeats; subBeat++) {
+      this.onSubBeat(
+        (beat * this.subBeats + subBeat) % this.loopLength,
+        whenFunc(subBeat / this.subBeats)
+      );
+    }
+  }
+
+  onSubBeat(subBeat, when) {
+    const semitone = this.pattern.split(".")[subBeat];
+
+    if (semitone && semitone !== "") {
+      console.log(semitone);
+      this.sampler.playOffset(16.69, when, 0.17, 1, semitoneToRate(-8.8 + +semitone))
+    }
+  }
 }
 
 class CissyBeat extends Node {
@@ -35,7 +69,7 @@ class CissyBeat extends Node {
     this.sampler = new SingleBufferSampler(cissyBuffer, {
       K: 42.73,
       S: 38.45,
-      H: 45.07,
+      H: 45.07
     });
 
     //TODO: modify SingleBufferSampler constructor so this can be done in one go
@@ -53,7 +87,7 @@ class CissyBeat extends Node {
   subBeats = 2
   loopLength = 32
 
-  onBeat(beat, whenFunc, length) {
+  onBeat(beat, whenFunc, lengthFunc) {
     for (let subBeat = 0; subBeat < this.subBeats; subBeat++) {
       this.onSubBeat(
         (beat * this.subBeats + subBeat) % this.loopLength,
@@ -81,7 +115,7 @@ export default loadInitialBuffers().then(buffers => {
   });
 
   septemberVocals.setLengths({
-    verse1_1: 15,
+    verse1_1: 15.4,
     verse1_2: 14.2,
     chorus1_1: 15
   });
@@ -92,6 +126,13 @@ export default loadInitialBuffers().then(buffers => {
 
   const cissyBeat = new CissyBeat(buffers.cissy);
   connect(cissyBeat, ctx.destination);
+
+  window.cissySampler = new SingleBufferSampler(buffers.cissy, {
+  
+  });
+  connect(window.cissySampler, ctx.destination);
+  const cissyBass = new CissyBass(buffers.cissy);
+  connect(cissyBass, ctx.destination);
 
   const synth = new FmSynth({
     attack: 0.01,
@@ -106,19 +147,65 @@ export default loadInitialBuffers().then(buffers => {
   clock.setBpm(124.55);
   window.clock = clock;
 
-  clock.onBeat((beat, whenFunc, length) => {
+  window.chic = new SingleBufferSampler(buffers.chic);
+  connect(window.chic, ctx.destination);
+
+
+
+  clock.onBeat((beat, whenFunc, lengthFunc) => {
     synth.playNote(12, whenFunc(0), 0.1);
 
     if (beat % 8 == 4 || beat % 8 == 5) {
       synth.playNote(14, whenFunc(0), 0.1);
     }
 
-    if (beat % 16 == 6) {
+    if (beat % 64 == 6) {
       septemberVocals.play('verse1_1', whenFunc(3/8));
     }
 
-    cissyBeat.onBeat(beat, whenFunc, length);
+    if (beat % 64 == 38) {
+      septemberVocals.play('verse1_2', whenFunc(3/8));
+    }
+
+
+    cissyBeat.onBeat(beat, whenFunc, lengthFunc);
+    cissyBass.onBeat(beat, whenFunc, lengthFunc);
+
+    // TODO: make these notes controllable from keyboard
+    if (beat % 16 == 8) {
+      chic.playOffset(34.52, whenFunc(), 0.4, 1, semitoneToRate(4.8))
+    }
+    if (beat % 16 == 0) {
+      chic.playOffset(34.52, whenFunc(), 0.4, 1, semitoneToRate(3.8))
+    }
+
+    if (beat % 16 == 15) {
+      chic.playOffset(38.11, whenFunc(0), lengthFunc(0.5), 1, 0.82)
+    }
+    if (beat % 16 == 7 || beat % 16 == 15) {
+      chic.playOffset(38.11, whenFunc(0.5), lengthFunc(1), 1, 0.82)
+    }
   });
 
-  return clock;
+  clock.start();
+
+  const keydown = (event) => {
+    const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
+    const semitone = keys.indexOf(event.which);
+    console.log(semitone);
+    console.log(event);
+
+    if (semitone !== -1) {
+      if (event.shiftKey) {
+        cissySampler.playOffset(15.17, 0, 0.17, 1, semitoneToRate(-8.8 + semitone))
+      } else {
+        cissySampler.playOffset(16.69, 0, 0.17, 1, semitoneToRate(-8.8 + semitone))
+      }
+    }
+  };
+
+  return {
+    clock,
+    keydown
+  };
 });
