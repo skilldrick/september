@@ -3,7 +3,7 @@ import { ctx, getCurrentTime } from 'sine/audio';
 import { createBufferSource, createGain } from 'sine/nodes';
 import { connect, Node, semitoneToRate } from 'sine/util';
 import clock from 'sine/clock';
-import { FmSynth, SamplerSynth } from 'sine/synth';
+import { FmSynth, HarmonicSynth, SamplerSynth } from 'sine/synth';
 import { SingleBufferSampler } from 'sine/sampler';
 import Scheduler from 'sine/scheduler';
 
@@ -87,7 +87,6 @@ class CissyBass extends Node {
     const semitone = this.pattern.split(".")[subBeat];
 
     if (semitone && semitone !== "  ") {
-      console.log(semitone);
       this.sampler.playOffset(16.69, when, 0.17, 1, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
     }
   }
@@ -105,16 +104,10 @@ class CissyBeat extends Node {
     super();
 
     this.sampler = new SingleBufferSampler(cissyBuffer, {
-      K: 42.73,
-      S: 38.45,
-      H: 45.07
-    });
-
-    //TODO: modify SingleBufferSampler constructor so this can be done in one go
-    this.sampler.setLengths({
-      K: 0.3,
-      S: 0.2,
-      H: 0.15
+      K: { offset: 42.73, length: 0.3 },
+      S: { offset: 38.45, length: 0.2 },
+      H: { offset: 45.07, length: 0.2,
+           fadeOut: 0.05, playbackRate: semitoneToRate(-0.7) }
     });
 
     window.sampler = this.sampler;
@@ -176,24 +169,24 @@ export default Promise.all([
   connect(cissyBass, ctx.destination);
 
   const mellotron = new SamplerSynth({
-    attack: 0.2,
+    attack: 0.1,
     decay: 0.2,
-    sustain: 0.8,
+    sustain: 1,
     release: 0.2
   }, mellotronBuffers)
-  const mellotronGain = createGain(0.2);
+  const mellotronGain = createGain(0.1);
   connect(mellotron, mellotronGain, ctx.destination);
   console.log(mellotron);
 
 
-  const synth = new FmSynth({
-    attack: 0.01,
+  const synth = new HarmonicSynth({
+    attack: 0.05,
     decay: 0.1,
     sustain: 0.8,
-    release: 0.1
-  });
+    release: 0.2
+  }, [1,1,0.5,0.5,0.2,0.2]);
 
-  const gain = createGain(0.1);
+  const gain = createGain(0.2);
   connect(synth, gain, ctx.destination);
 
   clock.setBpm(124.55);
@@ -238,12 +231,22 @@ export default Promise.all([
 
     if ((beat - 8) % 16 == 0) {
       [0, 4, 9, 12].forEach(semitone => {
-        mellotron.playNote(semitone, whenFunc(0), lengthFunc(8), 5);
+        mellotron.playNote(semitone, whenFunc(0), lengthFunc(6), 5);
+      });
+    }
+    if ((beat - 8) % 16 == 6) {
+      [2, 4, 9, 12].forEach(semitone => {
+        mellotron.playNote(semitone, whenFunc(0), lengthFunc(2), 5);
       });
     }
     if ((beat - 8) % 16 == 8) {
       [0, 4, 7, 12].forEach(semitone => {
-        mellotron.playNote(semitone, whenFunc(0), lengthFunc(8), 5);
+        mellotron.playNote(semitone, whenFunc(0), lengthFunc(4), 5);
+      });
+    }
+    if ((beat - 8) % 16 == 12) {
+      [0, 5, 7, 12].forEach(semitone => {
+        mellotron.playNote(semitone, whenFunc(0), lengthFunc(4), 5);
       });
     }
   });
