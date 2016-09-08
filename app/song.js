@@ -88,7 +88,7 @@ class CissyBass extends Node {
 
     if (semitone && semitone !== "  ") {
       console.log(semitone);
-      this.sampler.playOffset(16.69, when, 0.17, 1, semitoneToRate(-8.8 + +semitone))
+      this.sampler.playOffset(16.69, when, 0.17, 1, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
     }
   }
 }
