@@ -3,10 +3,17 @@ import { ctx, getCurrentTime } from 'sine/audio';
 import { createBufferSource, createGain } from 'sine/nodes';
 import { connect, Node, semitoneToRate } from 'sine/util';
 import clock from 'sine/clock';
-import { FmSynth } from 'sine/synth';
+import { FmSynth, SamplerSynth } from 'sine/synth';
 import { SingleBufferSampler } from 'sine/sampler';
 import Scheduler from 'sine/scheduler';
 
+
+const loadBuffers = (fileNames) => {
+  // Returns a Promise of an object of buffer names to buffers
+  return Promise.all(_.toPairs(fileNames).map(([name, fileName]) =>
+    getAudioBuffer(fileName).then(buff => [name, buff])
+  )).then(bufferArray => _.fromPairs(bufferArray));
+}
 
 
 const loadInitialBuffers = () => {
@@ -16,15 +23,46 @@ const loadInitialBuffers = () => {
     chic: 'chic.mp3'
   };
 
-  // Returns a Promise of an object of buffer names to buffers
-  return Promise.all(_.toPairs(fileNames).map(([name, fileName]) =>
-    getAudioBuffer(fileName).then(buff => [name, buff])
-  )).then(bufferArray => _.fromPairs(bufferArray));
+  return loadBuffers(fileNames);
+}
+
+const loadMellotron = () => {
+  const noteNameToFileName = (noteName) => {
+    return "woodwind/" + noteName[0].toUpperCase() + noteName[1] + ".mp3";
+  }
+
+  /*
+  const noteNames = [
+    'g2', 'a2', 'b2',
+    'c3', 'd3', 'e3', 'f3', 'g3', 'a3', 'b3',
+    'c4', 'd4', 'e4', 'f4', 'g4', 'a4', 'b4',
+    'c5', 'd5', 'e5', 'f5'
+  ];
+  */
+  // cut down on bandwidth by only sending a few notes
+  const noteNames = [
+    'g2',
+    'c3', 'e3', 'g3', 'a3',
+    'c4', 'e4', 'g4', 'a4',
+    'c5', 'f5'
+  ];
+
+  const fileNames = _.fromPairs(
+    noteNames.map(noteName => [noteName, noteNameToFileName(noteName)])
+  );
+
+  return loadBuffers(fileNames);
 }
 
 
 class CissyBass extends Node {
-  pattern = "11.11.11.10..08..08.10.08.06.01..03..03"
+  pattern = [
+    "11.11.11.10.  .08.  .08.10.08.06.01.  .03.  .03.",
+    "10.10.10.08.  .06.  .06.08.06.03.01.  .03.  .03.",
+    "11.11.11.10.  .08.  .08.10.08.06.01.  .03.  .03.",
+    "06.  .  .06.06.  .  .06.06.06.  .06.  .06.  .06."
+  ].join("")
+
   constructor(cissyBuffer) {
     super();
 
@@ -34,7 +72,7 @@ class CissyBass extends Node {
   }
 
   subBeats = 2
-  loopLength = 16
+  loopLength = 64
 
   onBeat(beat, whenFunc, lengthFunc) {
     for (let subBeat = 0; subBeat < this.subBeats; subBeat++) {
@@ -48,7 +86,7 @@ class CissyBass extends Node {
   onSubBeat(subBeat, when) {
     const semitone = this.pattern.split(".")[subBeat];
 
-    if (semitone && semitone !== "") {
+    if (semitone && semitone !== "  ") {
       console.log(semitone);
       this.sampler.playOffset(16.69, when, 0.17, 1, semitoneToRate(-8.8 + +semitone))
     }
@@ -107,7 +145,10 @@ class CissyBeat extends Node {
   }
 }
 
-export default loadInitialBuffers().then(buffers => {
+export default Promise.all([
+  loadInitialBuffers(),
+  loadMellotron()
+]).then(([buffers, mellotronBuffers]) => {
   const septemberVocals = new SingleBufferSampler(buffers.september, {
     verse1_1: 22,
     verse1_2: 37.4,
@@ -134,6 +175,17 @@ export default loadInitialBuffers().then(buffers => {
   const cissyBass = new CissyBass(buffers.cissy);
   connect(cissyBass, ctx.destination);
 
+  const mellotron = new SamplerSynth({
+    attack: 0.2,
+    decay: 0.2,
+    sustain: 0.8,
+    release: 0.2
+  }, mellotronBuffers)
+  const mellotronGain = createGain(0.2);
+  connect(mellotron, mellotronGain, ctx.destination);
+  console.log(mellotron);
+
+
   const synth = new FmSynth({
     attack: 0.01,
     decay: 0.1,
@@ -151,7 +203,6 @@ export default loadInitialBuffers().then(buffers => {
   connect(window.chic, ctx.destination);
 
 
-
   clock.onBeat((beat, whenFunc, lengthFunc) => {
     synth.playNote(12, whenFunc(0), 0.1);
 
@@ -167,13 +218,12 @@ export default loadInitialBuffers().then(buffers => {
       septemberVocals.play('verse1_2', whenFunc(3/8));
     }
 
-
     cissyBeat.onBeat(beat, whenFunc, lengthFunc);
-    cissyBass.onBeat(beat, whenFunc, lengthFunc);
+    cissyBass.onBeat(beat - 8, whenFunc, lengthFunc);
 
     // TODO: make these notes controllable from keyboard
     if (beat % 16 == 8) {
-      chic.playOffset(34.52, whenFunc(), 0.4, 1, semitoneToRate(4.8))
+      chic.playOffset(34.52, whenFunc(), 0.35, 1, semitoneToRate(1.8))
     }
     if (beat % 16 == 0) {
       chic.playOffset(34.52, whenFunc(), 0.4, 1, semitoneToRate(3.8))
@@ -185,19 +235,29 @@ export default loadInitialBuffers().then(buffers => {
     if (beat % 16 == 7 || beat % 16 == 15) {
       chic.playOffset(38.11, whenFunc(0.5), lengthFunc(1), 1, 0.82)
     }
+
+    if ((beat - 8) % 16 == 0) {
+      [0, 4, 9, 12].forEach(semitone => {
+        mellotron.playNote(semitone, whenFunc(0), lengthFunc(8), 5);
+      });
+    }
+    if ((beat - 8) % 16 == 8) {
+      [0, 4, 7, 12].forEach(semitone => {
+        mellotron.playNote(semitone, whenFunc(0), lengthFunc(8), 5);
+      });
+    }
   });
 
-  clock.start();
+  //clock.start();
 
   const keydown = (event) => {
     const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
     const semitone = keys.indexOf(event.which);
     console.log(semitone);
-    console.log(event);
 
     if (semitone !== -1) {
       if (event.shiftKey) {
-        cissySampler.playOffset(15.17, 0, 0.17, 1, semitoneToRate(-8.8 + semitone))
+        mellotron.playNote(semitone, getCurrentTime(), 0.2);
       } else {
         cissySampler.playOffset(16.69, 0, 0.17, 1, semitoneToRate(-8.8 + semitone))
       }
