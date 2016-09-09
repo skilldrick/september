@@ -139,6 +139,50 @@ class CissyBeat extends Node {
   }
 }
 
+class Mellotron extends Node {
+  constructor(mellotronBuffers) {
+    super();
+
+    this.synth = new SamplerSynth({
+      attack: 0.1,
+      decay: 0.2,
+      sustain: 1,
+      release: 0.2
+    }, mellotronBuffers)
+
+    connect(this.synth, this.output);
+  }
+
+  chords = {
+    A: [0, 4, 9, 12],
+    B: [2, 4, 9, 12],
+    C: [0, 4, 7, 12],
+    D: [0, 5, 7, 12]
+  }
+
+  //         |   |   |   |   |   |   |   |   |
+  pattern = "A-----B-C---D---A---B---C-----D-"
+
+  onBeat(beat, whenFunc, lengthFunc) {
+    const loopBeat = beat % this.pattern.length;
+    const chordName = this.pattern[loopBeat];
+
+    if (chordName && chordName != ' ' && chordName != '-') {
+      // find out how long this chord is based on chord name and number of hyphens
+      const length = this.pattern.slice(loopBeat).match(/^.-+/)[0].length;
+
+      this.chords[chordName].forEach(semitone => {
+        this.playNote(semitone - 12, whenFunc(0), lengthFunc(length));
+        this.playNote(semitone, whenFunc(0), lengthFunc(length));
+      })
+    }
+  }
+
+  playNote(note, when, length) {
+    this.synth.playNote(note, when, length, 20);
+  }
+}
+
 export default Promise.all([
   loadInitialBuffers(),
   loadMellotron()
@@ -155,29 +199,14 @@ export default Promise.all([
     chorus1_1: 15
   });
 
-  connect(septemberVocals, ctx.destination);
   window.septemberVocals = septemberVocals;
 
 
   const cissyBeat = new CissyBeat(buffers.cissy);
-  connect(cissyBeat, ctx.destination);
-
-  window.cissySampler = new SingleBufferSampler(buffers.cissy, {
-  
-  });
-  connect(window.cissySampler, ctx.destination);
   const cissyBass = new CissyBass(buffers.cissy);
-  connect(cissyBass, ctx.destination);
+  const mellotron = new Mellotron(mellotronBuffers);
 
-  const mellotron = new SamplerSynth({
-    attack: 0.1,
-    decay: 0.2,
-    sustain: 1,
-    release: 0.2
-  }, mellotronBuffers)
-  const mellotronGain = createGain(0.1);
-  connect(mellotron, mellotronGain, ctx.destination);
-  console.log(mellotron);
+  window.cissySampler = new SingleBufferSampler(buffers.cissy);
 
 
   const synth = new HarmonicSynth({
@@ -187,14 +216,13 @@ export default Promise.all([
     release: 0.2
   }, [1,1,0.5,0.5,0.2,0.2]);
 
-  const gain = createGain(0.2);
-  connect(synth, gain, ctx.destination);
-
   clock.setBpm(124.55);
   window.clock = clock;
 
-  window.chic = new SingleBufferSampler(buffers.chic);
-  connect(window.chic, ctx.destination);
+  window.chic = new SingleBufferSampler(buffers.chic, {
+    hit1: { offset: 34.52, length: 0.35, playbackRate: semitoneToRate(1.8) },
+    hit2: { offset: 34.52, length: 0.4, playbackRate: semitoneToRate(3.8) },
+  });
 
 
   clock.onBeat((beat, whenFunc, lengthFunc) => {
@@ -214,13 +242,13 @@ export default Promise.all([
 
     cissyBeat.onBeat(beat, whenFunc, lengthFunc);
     cissyBass.onBeat(beat + 24, whenFunc, lengthFunc);
+    mellotron.onBeat(beat - 8, whenFunc, lengthFunc);
 
-    // TODO: make these notes controllable from keyboard
     if (beat % 16 == 8) {
-      chic.playOffset(34.52, whenFunc(), 0.35, 1, semitoneToRate(1.8))
+      chic.play('hit1', whenFunc())
     }
     if (beat % 16 == 0) {
-      chic.playOffset(34.52, whenFunc(), 0.4, 1, semitoneToRate(3.8))
+      chic.play('hit2', whenFunc())
     }
 
     if (beat % 16 == 15) {
@@ -230,27 +258,20 @@ export default Promise.all([
       chic.playOffset(38.11, whenFunc(0.5), lengthFunc(1), 1, 0.82)
     }
 
-    if ((beat - 8) % 16 == 0) {
-      [0, 4, 9, 12].forEach(semitone => {
-        mellotron.playNote(semitone, whenFunc(0), lengthFunc(6), 5);
-      });
-    }
-    if ((beat - 8) % 16 == 6) {
-      [2, 4, 9, 12].forEach(semitone => {
-        mellotron.playNote(semitone, whenFunc(0), lengthFunc(2), 5);
-      });
-    }
-    if ((beat - 8) % 16 == 8) {
-      [0, 4, 7, 12].forEach(semitone => {
-        mellotron.playNote(semitone, whenFunc(0), lengthFunc(4), 5);
-      });
-    }
-    if ((beat - 8) % 16 == 12) {
-      [0, 5, 7, 12].forEach(semitone => {
-        mellotron.playNote(semitone, whenFunc(0), lengthFunc(4), 5);
-      });
-    }
   });
+
+  const mixer = new Mixer([
+    { name: 'Synth', node: synth, gain: 0.2 },
+    { name: 'September Vocals', node: septemberVocals },
+    { name: 'Cissy Beat', node: cissyBeat },
+    { name: 'Cissy Bass', node: cissyBass },
+    { name: 'Chic', node: chic },
+    { name: 'Mellotron', node: mellotron, gain: 0.1 },
+    { name: 'Cissy Sampler', node: cissySampler, gain: 1 },
+  ]);
+
+  connect(mixer, ctx.destination);
+  window.mixer = mixer;
 
   //clock.start();
 
@@ -273,3 +294,42 @@ export default Promise.all([
     keydown
   };
 });
+
+class Bus extends Node {
+  constructor(info) {
+    super();
+    this.name = info.name;
+    this.node = info.node;
+    this.gain = createGain(1);
+
+    if (typeof info.gain == 'number') {
+      this.gain.gain.value = info.gain;
+    }
+
+    connect(this.node, this.gain, this.output);
+  }
+}
+
+class Mixer extends Node {
+  constructor(nodes) {
+    super();
+
+    this.masterGain = createGain(1);
+
+    this.busses = nodes.map(info => {
+      const bus = new Bus(info);
+      connect(bus, this.masterGain);
+      return bus;
+    });
+
+    connect(this.masterGain, this.output);
+  }
+
+  mute(bus) {
+    this.busses[bus].output.gain.value = 0;
+  }
+
+  unMute(bus) {
+    this.busses[bus].output.gain.value = 1;
+  }
+}
