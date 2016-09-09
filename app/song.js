@@ -57,10 +57,10 @@ const loadMellotron = () => {
 
 class CissyBass extends Node {
   pattern = [
-    "11.11.11.10.  .08.  .08.10.08.06.01.  .03.  .03.",
-    "10.10.10.08.  .06.  .06.08.06.03.01.  .03.  .03.",
-    "11.11.11.10.  .08.  .08.10.08.06.01.  .03.  .03.",
-    "06.  .  .06.06.  .  .06.06.06.  .06.  .06.  .06."
+    "11.  .11.  .11.11.10.  .  .  .08.  .  .  .08.09.10.  .08.  .06.06.01.  .  .  .03.  .  .  .03.03.",
+    "10.  .10.  .10.08.08.  .  .  .06.  .  .  .06.07.08.  .06.  .03.03.01.  .  .  .03.  .  .  .03.03.",
+    "11.  .11.  .11.10.10.  .  .  .08.  .  .  .08.09.10.  .08.  .06.06.01.  .  .  .03.  .  .  .03.03.",
+    "06.  .06.  .  .  .16.18.06.  .06.  .  .  .16.18.06.  .  .06.06.  .06.  .  .  .06.  .  .06.06.06."
   ].join("")
 
   constructor(cissyBuffer) {
@@ -71,8 +71,8 @@ class CissyBass extends Node {
     connect(this.sampler, this.output);
   }
 
-  subBeats = 2
-  loopLength = 64
+  subBeats = 4
+  loopLength = 32 * this.subBeats;
 
   onBeat(beat, whenFunc, lengthFunc) {
     for (let subBeat = 0; subBeat < this.subBeats; subBeat++) {
@@ -85,9 +85,10 @@ class CissyBass extends Node {
 
   onSubBeat(subBeat, when) {
     const semitone = this.pattern.split(".")[subBeat];
+    const gain = subBeat % 2 === 0 ? 1 : 0.5; // reduced gain for off beats
 
     if (semitone && semitone !== "  ") {
-      this.sampler.playOffset(16.69, when, 0.17, 1, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
+      this.sampler.playOffset(16.69, when, 0.17, gain, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
     }
   }
 }
@@ -212,7 +213,7 @@ export default Promise.all([
     }
 
     cissyBeat.onBeat(beat, whenFunc, lengthFunc);
-    cissyBass.onBeat(beat - 8, whenFunc, lengthFunc);
+    cissyBass.onBeat(beat + 24, whenFunc, lengthFunc);
 
     // TODO: make these notes controllable from keyboard
     if (beat % 16 == 8) {
