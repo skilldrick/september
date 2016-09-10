@@ -6,6 +6,15 @@ import clock from 'sine/clock';
 import { FmSynth, HarmonicSynth, SamplerSynth } from 'sine/synth';
 import { SingleBufferSampler } from 'sine/sampler';
 import Scheduler from 'sine/scheduler';
+import Kick8 from 'kick-eight';
+import Snare from 'snare';
+import HiHat from 'hi-hat';
+import Conga from 'tom-tom';
+import RimShot from 'rim-shot';
+import Clap from 'clappy';
+import CowBell from 'cow-bell';
+import Maracas from 'maracas';
+import Claves from 'claves';
 
 
 const loadBuffers = (fileNames) => {
@@ -54,6 +63,42 @@ const loadMellotron = () => {
   return loadBuffers(fileNames);
 }
 
+class Drum808 extends Node {
+  constructor() {
+    super();
+
+    this.instruments = {
+      kick: Kick8(ctx),
+      snare: Snare(ctx),
+      hiHat: HiHat(ctx),
+      conga: Conga(ctx),
+      rimShot: RimShot(ctx),
+      clap: Clap(ctx),
+      cowBell: CowBell(ctx),
+      maracas: Maracas(ctx),
+      claves: Claves(ctx)
+    };
+  }
+
+  play(instrument, when, gain=1) {
+    const node = this.instruments[instrument]();
+    const gainNode = createGain(gain);
+    connect(node, gainNode, this.output);
+    node.start(when);
+  }
+
+  onBeat(beat, whenFunc, lengthFunc) {
+    this.play('kick', whenFunc(0));
+    this.play('hiHat', whenFunc(0));
+    this.play('hiHat', whenFunc(0.5), 0.5);
+    if (beat % 2 == 1) {
+      this.play('snare', whenFunc(0), 0.7);
+    }
+    if (beat % 8 == 6) {
+      this.play('snare', whenFunc(0.5), 0.5);
+    }
+  }
+}
 
 class CissyBass extends Node {
   pattern = [
@@ -205,6 +250,7 @@ export default Promise.all([
   const cissyBeat = new CissyBeat(buffers.cissy);
   const cissyBass = new CissyBass(buffers.cissy);
   const mellotron = new Mellotron(mellotronBuffers);
+  const drum808 = new Drum808();
 
   window.cissySampler = new SingleBufferSampler(buffers.cissy);
 
@@ -243,6 +289,7 @@ export default Promise.all([
     cissyBeat.onBeat(beat, whenFunc, lengthFunc);
     cissyBass.onBeat(beat + 24, whenFunc, lengthFunc);
     mellotron.onBeat(beat - 8, whenFunc, lengthFunc);
+    drum808.onBeat(beat, whenFunc, lengthFunc);
 
     if (beat % 16 == 8) {
       chic.play('hit1', whenFunc())
@@ -268,6 +315,7 @@ export default Promise.all([
     { name: 'Chic', node: chic },
     { name: 'Mellotron', node: mellotron, gain: 0.1 },
     { name: 'Cissy Sampler', node: cissySampler, gain: 1 },
+    { name: 'Drum 808', node: drum808 }
   ]);
 
   connect(mixer, ctx.destination);
@@ -278,14 +326,28 @@ export default Promise.all([
   const keydown = (event) => {
     const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
     const semitone = keys.indexOf(event.which);
-    console.log(semitone);
 
-    if (semitone !== -1) {
-      if (event.shiftKey) {
-        mellotron.playNote(semitone, getCurrentTime(), 0.2);
-      } else {
-        cissySampler.playOffset(16.69, 0, 0.17, 1, semitoneToRate(-8.8 + semitone))
-      }
+    const drums = {
+      'z': 'kick',
+      'x': 'snare',
+      'c': 'hiHat',
+      'v': 'conga',
+      'b': 'rimShot',
+      'n': 'clap',
+      'm': 'cowBell',
+      ',': 'maracas',
+      '.': 'claves'
+    }
+
+    const drum = drums[event.key];
+
+    if (event.shiftKey && semitone !== -1) {
+      console.log(semitone);
+      cissySampler.playOffset(16.69, 0, 0.17, 1, semitoneToRate(-8.8 + semitone))
+      //mellotron.playNote(semitone, getCurrentTime(), 0.2);
+    } else if (drum) {
+      console.log(drum);
+      drum808.play(drum, getCurrentTime());
     }
   };
 
