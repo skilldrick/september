@@ -220,6 +220,96 @@ class Mellotron extends Node {
   }
 }
 
+class SeptemberVocals extends Node {
+  constructor(buffer) {
+    super();
+
+    this.sampler = new SingleBufferSampler(buffer, {
+      verse1_1: 22,
+      verse1_2: 37.4,
+      chorus1_1: 51.6
+    });
+
+    this.sampler.setLengths({
+      verse1_1: 15.4,
+      verse1_2: 14.2,
+      chorus1_1: 15
+    });
+
+    connect(this.sampler, this.output);
+  }
+
+  onTick(bar, beat, tick, when, lengthFunc) {
+    if (bar % 16 == 1 && beat == 2 && tick == 3) {
+      this.sampler.play('verse1_1', when);
+    }
+
+    if (bar % 16 == 9 && beat == 2 && tick == 3) {
+      this.sampler.play('verse1_2', when);
+    }
+  }
+}
+
+class SynthNotes extends Node {
+  patterns = [
+    ["AAAA", "AAAA"],
+    ["    ", "BB  "]
+  ]
+
+  noteMap = {
+    A: 12,
+    B: 14
+  }
+
+  constructor() {
+    super();
+
+    this.synth = new HarmonicSynth({
+      attack: 0.05,
+      decay: 0.1,
+      sustain: 0.8,
+      release: 0.2
+    }, [1,1,0.5,0.5,0.2,0.2]);
+
+    connect(this.synth, this.output);
+  }
+
+  onBeat(bar, beat, when) {
+    this.patterns.forEach(pattern => {
+      const note = pattern[bar % 2][beat];
+
+      if (note != " ") {
+        this.synth.playNote(this.noteMap[note], when, 0.1);
+      }
+    });
+  }
+}
+
+class Chic extends Node {
+  pattern = ["A       ", "       Y", "B       ", "      XY"]
+
+  constructor(buffer) {
+    super();
+
+    this.sampler = new SingleBufferSampler(buffer, {
+      A: { offset: 34.52, length: 0.35, playbackRate: semitoneToRate(1.8) },
+      B: { offset: 34.52, length: 0.4, playbackRate: semitoneToRate(3.8) },
+      X: { offset: 38.11, length: 0.25, gain: 1.3, playbackRate: 0.82 },
+      Y: { offset: 38.11, length: 0.5, gain: 1.6, playbackRate: 0.82 }
+    });
+
+    connect(this.sampler, this.output);
+  }
+
+  onTick(bar, beat, tick, when, lengthFunc) {
+    const sample = this.pattern[(bar + 2) % 4][beat * 2 + tick];
+
+    if (sample && sample != ' ') {
+      this.sampler.play(sample, when);
+    }
+  }
+}
+
 class Song {
   constructor(bpm, beatsPerBar = 4) {
     clock.setBpm(bpm);
@@ -271,75 +361,26 @@ export default Promise.all([
   loadInitialBuffers(),
   loadMellotron()
 ]).then(([buffers, mellotronBuffers]) => {
-  const septemberVocals = new SingleBufferSampler(buffers.september, {
-    verse1_1: 22,
-    verse1_2: 37.4,
-    chorus1_1: 51.6
-  });
 
-  septemberVocals.setLengths({
-    verse1_1: 15.4,
-    verse1_2: 14.2,
-    chorus1_1: 15
-  });
-
-  window.septemberVocals = septemberVocals;
-
-
+  const chic = new Chic(buffers.chic);
+  const synthNotes = new SynthNotes();
+  const septemberVocals = new SeptemberVocals(buffers.september)
   const cissyBeat = new CissyBeat(buffers.cissy);
   const cissyBass = new CissyBass(buffers.cissy);
   const mellotron = new Mellotron(mellotronBuffers);
   const drum808 = new Drum808();
 
-  window.cissySampler = new SingleBufferSampler(buffers.cissy);
-
-
-  const synth = new HarmonicSynth({
-    attack: 0.05,
-    decay: 0.1,
-    sustain: 0.8,
-    release: 0.2
-  }, [1,1,0.5,0.5,0.2,0.2]);
-
-  window.chic = new SingleBufferSampler(buffers.chic, {
-    hit1: { offset: 34.52, length: 0.35, playbackRate: semitoneToRate(1.8) },
-    hit2: { offset: 34.52, length: 0.4, playbackRate: semitoneToRate(3.8) },
-  });
-
-
   const song = new Song(124.55, 4);
 
   song.onBeat((bar, beat, when, lengthFunc) => {
-    synth.playNote(12, when, 0.1);
-
-    if (bar % 2 == 1 && (beat == 0 || beat == 1)) {
-      synth.playNote(14, when, 0.1);
-    }
-
+    synthNotes.onBeat(bar, beat, when);
     mellotron.onBeat(bar, beat, when, lengthFunc);
-
-    if (bar % 4 == 2 && beat == 0) {
-      chic.play('hit1', when)
-    }
-    if (bar % 4 == 0 && beat == 0) {
-      chic.play('hit2', when)
-    }
   });
 
   song.onHalfBeat((bar, beat, tick, when, lengthFunc) => {
     cissyBeat.onTick(bar, beat, tick, when);
     drum808.onTick(bar, beat, tick, when);
-
-    if (bar % 2 == 1 && beat == 3) {
-      if (tick == 1) {
-        chic.playOffset(38.11, when, lengthFunc(1), 1, 0.82)
-      }
-    }
-    if (bar % 4 == 1 && beat == 3) {
-      if (tick == 0) {
-        chic.playOffset(38.11, when, lengthFunc(0.5), 1, 0.82)
-      }
-    }
+    chic.onTick(bar, beat, tick, when, lengthFunc);
   });
 
   song.onQuarterBeat((bar, beat, tick, when, lengthFunc) => {
@@ -347,23 +388,16 @@ export default Promise.all([
   });
 
   song.onEighthBeat((bar, beat, tick, when, lengthFunc) => {
-    if (bar % 16 == 1 && beat == 2 && tick == 3) {
-      septemberVocals.play('verse1_1', when);
-    }
-
-    if (bar % 16 == 9 && beat == 2 && tick == 3) {
-      septemberVocals.play('verse1_2', when);
-    }
+    septemberVocals.onTick(bar, beat, tick, when, lengthFunc);
   });
 
   const mixer = new Mixer([
-    { name: 'Synth', node: synth, gain: 0.2 },
+    { name: 'Synth', node: synthNotes, gain: 0.2 },
     { name: 'September Vocals', node: septemberVocals },
     { name: 'Cissy Beat', node: cissyBeat },
     { name: 'Cissy Bass', node: cissyBass },
     { name: 'Chic', node: chic },
     { name: 'Mellotron', node: mellotron, gain: 0.1 },
-    { name: 'Cissy Sampler', node: cissySampler, gain: 1 },
     { name: 'Drum 808', node: drum808 }
   ]);
 
@@ -392,8 +426,7 @@ export default Promise.all([
 
     if (event.shiftKey && semitone !== -1) {
       console.log(semitone);
-      cissySampler.playOffset(16.69, 0, 0.17, 1, semitoneToRate(-8.8 + semitone))
-      //mellotron.playNote(semitone, getCurrentTime(), 0.2);
+      mellotron.playNote(semitone, getCurrentTime(), 0.2);
     } else if (drum) {
       console.log(drum);
       drum808.play(drum, getCurrentTime());
