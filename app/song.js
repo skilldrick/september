@@ -87,7 +87,7 @@ class Drum808 extends Node {
     node.start(when);
   }
 
-  onTick(bar, beat, tick, when) {
+  onTick(section, bar, beat, tick, when) {
     if (tick == 0) {
       this.play('kick', when);
       this.play('hiHat', when);
@@ -130,8 +130,9 @@ class CissyBass extends Node {
     connect(this.sampler, this.output);
   }
 
-  onTick(bar, beat, tick, when) {
-    const semitone = this.pattern[(bar + 6) % 8][beat].split(".")[tick];
+  onTick(section, bar, beat, tick, when) {
+    const loopBar = (section == 'intro') ? (bar + 6) % 8 : bar % 8;
+    const semitone = this.pattern[loopBar][beat].split(".")[tick];
     const gain = tick % 2 === 0 ? 1 : 0.5; // reduced gain for off beats
 
     if (semitone && semitone !== "  ") {
@@ -163,7 +164,7 @@ class CissyBeat extends Node {
 
   ticks = 2
 
-  onTick(bar, beat, tick, when) {
+  onTick(section, bar, beat, tick, when) {
     this.patterns.forEach(pattern => {
       const sample = pattern[bar % 4][beat * this.ticks + tick];
 
@@ -198,9 +199,10 @@ class Mellotron extends Node {
   //         |   |   |   |   |   |   |   |   |
   pattern = "A-----B-C---D---A---B---C-----D-"
 
-  onBeat(bar, beat, when, lengthFunc) {
-    // this is some pretty gross math to have to do
-    const loopBeat = ((bar - 2) % 8) * 4 + beat;
+  onBeat(section, bar, beat, when, lengthFunc) {
+    if (section == 'intro') return;
+
+    const loopBeat = (bar % 8) * 4 + beat;
     const chordName = this.pattern[loopBeat];
 
     if (chordName && chordName != ' ' && chordName != '-') {
@@ -239,12 +241,16 @@ class SeptemberVocals extends Node {
     connect(this.sampler, this.output);
   }
 
-  onTick(bar, beat, tick, when, lengthFunc) {
-    if (bar % 16 == 1 && beat == 2 && tick == 3) {
+  onTick(section, bar, beat, tick, when, lengthFunc) {
+    if (section == 'intro' && bar == 1 && beat == 2 && tick == 3) {
       this.sampler.play('verse1_1', when);
     }
 
-    if (bar % 16 == 9 && beat == 2 && tick == 3) {
+    if (section == 'verse1' && bar == 15 && beat == 2 && tick == 3) {
+      this.sampler.play('verse1_1', when);
+    }
+
+    if (section == 'verse1' && bar == 7 && beat == 2 && tick == 3) {
       this.sampler.play('verse1_2', when);
     }
   }
@@ -274,7 +280,7 @@ class SynthNotes extends Node {
     connect(this.synth, this.output);
   }
 
-  onBeat(bar, beat, when) {
+  onBeat(section, bar, beat, when) {
     this.patterns.forEach(pattern => {
       const note = pattern[bar % 2][beat];
 
@@ -301,8 +307,9 @@ class Chic extends Node {
     connect(this.sampler, this.output);
   }
 
-  onTick(bar, beat, tick, when, lengthFunc) {
-    const sample = this.pattern[(bar + 2) % 4][beat * 2 + tick];
+  onTick(section, bar, beat, tick, when, lengthFunc) {
+    const pattern = (section == 'intro') ? this.pattern.slice(2) : this.pattern;
+    const sample = pattern[bar % 4][beat * 2 + tick];
 
     if (sample && sample != ' ') {
       this.sampler.play(sample, when);
@@ -311,7 +318,7 @@ class Chic extends Node {
 }
 
 class Song {
-  constructor(bpm, beatsPerBar = 4) {
+  constructor(bpm, beatsPerBar = 4, sections) {
     clock.setBpm(bpm);
 
     this.beatCb = _.noop;
@@ -319,20 +326,49 @@ class Song {
     this.quarterBeatCb = _.noop;
     this.eighthBeatCb = _.noop;
 
+    this.sections = this.processSections(sections);
+
     clock.onBeat((beat, whenFunc, lengthFunc) => {
       const bar = Math.floor(beat / beatsPerBar);
       const beatInBar = beat % beatsPerBar
 
-      this.beatCb(bar, beatInBar, whenFunc(0), lengthFunc);
-      this.callTickCallbacks(this.halfBeatCb, 2, bar, beatInBar, whenFunc, lengthFunc);
-      this.callTickCallbacks(this.quarterBeatCb, 4, bar, beatInBar, whenFunc, lengthFunc);
-      this.callTickCallbacks(this.eighthBeatCb, 8, bar, beatInBar, whenFunc, lengthFunc);
+      const sectionInfo = this.getSection(bar);
+      const section = sectionInfo.name;
+
+      const barInSection = bar - sectionInfo.start;
+
+      this.beatCb(section, barInSection, beatInBar, whenFunc(0), lengthFunc);
+      this.callTickCallbacks(this.halfBeatCb, 2, section, barInSection, beatInBar, whenFunc, lengthFunc);
+      this.callTickCallbacks(this.quarterBeatCb, 4, section, barInSection, beatInBar, whenFunc, lengthFunc);
+      this.callTickCallbacks(this.eighthBeatCb, 8, section, barInSection, beatInBar, whenFunc, lengthFunc);
     });
   }
 
-  callTickCallbacks(cb, ticksPerBeat, bar, beatInBar, whenFunc, lengthFunc) {
+  processSections(sections) {
+    let lengthSoFar = 0;
+
+    sections.forEach(section => {
+      section.start = lengthSoFar;
+      section.end = section.start + section.bars;
+      lengthSoFar += section.bars;
+    });
+
+    return sections;
+  }
+
+  getSection(bar) {
+    for (let section of this.sections) {
+      if (bar >= section.start && bar < section.end) {
+        return section;
+      }
+    }
+
+    return "END"
+  }
+
+  callTickCallbacks(cb, ticksPerBeat, section, bar, beatInBar, whenFunc, lengthFunc) {
     for (let tick = 0; tick < ticksPerBeat; tick++) {
-      cb(bar, beatInBar, tick, whenFunc(tick / ticksPerBeat), lengthFunc);
+      cb(section, bar, beatInBar, tick, whenFunc(tick / ticksPerBeat), lengthFunc);
     }
   }
 
@@ -370,25 +406,32 @@ export default Promise.all([
   const mellotron = new Mellotron(mellotronBuffers);
   const drum808 = new Drum808();
 
-  const song = new Song(124.55, 4);
+  const song = new Song(124.55, 4, [
+    { name: "intro", bars: 2 },
+    { name: "verse1", bars: 16 },
+    { name: "chorus1", bars: 16 },
+    { name: "bridge1", bars: 16 },
+    { name: "verse2", bars: 16 },
+  ]);
 
-  song.onBeat((bar, beat, when, lengthFunc) => {
-    synthNotes.onBeat(bar, beat, when);
-    mellotron.onBeat(bar, beat, when, lengthFunc);
+  song.onBeat((section, bar, beat, when, lengthFunc) => {
+    console.log(section);
+    synthNotes.onBeat(section, bar, beat, when);
+    mellotron.onBeat(section, bar, beat, when, lengthFunc);
   });
 
-  song.onHalfBeat((bar, beat, tick, when, lengthFunc) => {
-    cissyBeat.onTick(bar, beat, tick, when);
-    drum808.onTick(bar, beat, tick, when);
-    chic.onTick(bar, beat, tick, when, lengthFunc);
+  song.onHalfBeat((section, bar, beat, tick, when, lengthFunc) => {
+    cissyBeat.onTick(section, bar, beat, tick, when);
+    drum808.onTick(section, bar, beat, tick, when);
+    chic.onTick(section, bar, beat, tick, when, lengthFunc);
   });
 
-  song.onQuarterBeat((bar, beat, tick, when, lengthFunc) => {
-    cissyBass.onTick(bar, beat, tick, when);
+  song.onQuarterBeat((section, bar, beat, tick, when, lengthFunc) => {
+    cissyBass.onTick(section, bar, beat, tick, when);
   });
 
-  song.onEighthBeat((bar, beat, tick, when, lengthFunc) => {
-    septemberVocals.onTick(bar, beat, tick, when, lengthFunc);
+  song.onEighthBeat((section, bar, beat, tick, when, lengthFunc) => {
+    septemberVocals.onTick(section, bar, beat, tick, when, lengthFunc);
   });
 
   const mixer = new Mixer([
