@@ -87,26 +87,40 @@ class Drum808 extends Node {
     node.start(when);
   }
 
-  onBeat(beat, whenFunc, lengthFunc) {
-    this.play('kick', whenFunc(0));
-    this.play('hiHat', whenFunc(0));
-    this.play('hiHat', whenFunc(0.5), 0.5);
-    if (beat % 2 == 1) {
-      this.play('snare', whenFunc(0), 0.7);
+  onTick(bar, beat, tick, when) {
+    if (tick == 0) {
+      this.play('kick', when);
+      this.play('hiHat', when);
+
+      if (beat % 2 == 1) {
+        this.play('snare', when, 0.7);
+      }
     }
-    if (beat % 8 == 6) {
-      this.play('snare', whenFunc(0.5), 0.5);
+
+    if (bar % 2 == 1 && beat == 2 && tick == 1) {
+      this.play('snare', when, 0.5);
+    }
+
+    if (tick == 1) {
+      this.play('hiHat', when, 0.5);
     }
   }
 }
 
 class CissyBass extends Node {
   pattern = [
-    "11.  .11.  .11.11.10.  .  .  .08.  .  .  .08.09.10.  .08.  .06.06.01.  .  .  .03.  .  .  .03.03.",
-    "10.  .10.  .10.08.08.  .  .  .06.  .  .  .06.07.08.  .06.  .03.03.01.  .  .  .03.  .  .  .03.03.",
-    "11.  .11.  .11.10.10.  .  .  .08.  .  .  .08.09.10.  .08.  .06.06.01.  .  .  .03.  .  .  .03.03.",
-    "06.  .06.  .  .  .16.18.06.  .06.  .  .  .16.18.06.  .  .06.06.  .06.  .  .  .06.  .  .06.06.06."
-  ].join("")
+    ["11.  .11.  ", "11.11.10.  ", "  .  .08.  ", "  .  .08.09"],
+    ["10.  .08.  ", "06.06.01.  ", "  .  .03.  ", "  .  .03.03"],
+
+    ["10.  .10.  ", "10.10.08.  ", "  .  .06.  ", "  .  .06.07"],
+    ["08.  .06.  ", "03.03.01.  ", "  .  .03.  ", "  .  .03.03"],
+
+    ["11.  .11.  ", "11.10.10.  ", "  .  .08.  ", "  .  .08.09"],
+    ["10.  .08.  ", "06.06.01.  ", "  .  .03.  ", "  .  .03.03"],
+
+    ["06.  .06.  ", "  .  .16.18", "06.  .06.  ", "  .  .16.18"],
+    ["06.  .  .06", "06.  .06.  ", "  .  .06.  ", "  .06.06.06"]
+  ]
 
   constructor(cissyBuffer) {
     super();
@@ -116,21 +130,9 @@ class CissyBass extends Node {
     connect(this.sampler, this.output);
   }
 
-  subBeats = 4
-  loopLength = 32 * this.subBeats;
-
-  onBeat(beat, whenFunc, lengthFunc) {
-    for (let subBeat = 0; subBeat < this.subBeats; subBeat++) {
-      this.onSubBeat(
-        (beat * this.subBeats + subBeat) % this.loopLength,
-        whenFunc(subBeat / this.subBeats)
-      );
-    }
-  }
-
-  onSubBeat(subBeat, when) {
-    const semitone = this.pattern.split(".")[subBeat];
-    const gain = subBeat % 2 === 0 ? 1 : 0.5; // reduced gain for off beats
+  onTick(bar, beat, tick, when) {
+    const semitone = this.pattern[(bar + 6) % 8][beat].split(".")[tick];
+    const gain = tick % 2 === 0 ? 1 : 0.5; // reduced gain for off beats
 
     if (semitone && semitone !== "  ") {
       this.sampler.playOffset(16.69, when, 0.17, gain, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
@@ -140,10 +142,8 @@ class CissyBass extends Node {
 
 class CissyBeat extends Node {
   patterns = [
-  // |       |       |       |       |
-    "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH",
-    //"K SKK S K SK KS K SK KS K SK KSS"
-    "K S KKS K SK KS K S KKS K SK KSS"
+    ["HHHHHHH", "HHHHHHHH", "HHHHHHHH", "HHHHHHHH"],
+    ["K S KKS", "K SK KS ", "K S KKS ", "K SK KSS"]
   ]
 
   constructor(cissyBuffer) {
@@ -161,22 +161,12 @@ class CissyBeat extends Node {
     connect(this.sampler, this.output);
   }
 
-  subBeats = 2
-  loopLength = 32
+  ticks = 2
 
-  onBeat(beat, whenFunc, lengthFunc) {
-    for (let subBeat = 0; subBeat < this.subBeats; subBeat++) {
-      this.onSubBeat(
-        (beat * this.subBeats + subBeat) % this.loopLength,
-        whenFunc(subBeat / this.subBeats)
-      );
-    }
-  }
-
-  onSubBeat(subBeat, when) {
-    //this.sampler.play('H', when);
+  onTick(bar, beat, tick, when) {
     this.patterns.forEach(pattern => {
-      const sample = pattern[subBeat];
+      const sample = pattern[bar % 4][beat * this.ticks + tick];
+
       if (sample && sample !== " ") {
         sampler.play(sample, when);
       }
@@ -208,8 +198,9 @@ class Mellotron extends Node {
   //         |   |   |   |   |   |   |   |   |
   pattern = "A-----B-C---D---A---B---C-----D-"
 
-  onBeat(beat, whenFunc, lengthFunc) {
-    const loopBeat = beat % this.pattern.length;
+  onBeat(bar, beat, when, lengthFunc) {
+    // this is some pretty gross math to have to do
+    const loopBeat = ((bar - 2) % 8) * 4 + beat;
     const chordName = this.pattern[loopBeat];
 
     if (chordName && chordName != ' ' && chordName != '-') {
@@ -217,14 +208,62 @@ class Mellotron extends Node {
       const length = this.pattern.slice(loopBeat).match(/^.-+/)[0].length;
 
       this.chords[chordName].forEach(semitone => {
-        this.playNote(semitone - 12, whenFunc(0), lengthFunc(length));
-        this.playNote(semitone, whenFunc(0), lengthFunc(length));
+        this.playNote(semitone - 12, when, lengthFunc(length));
+        this.playNote(semitone, when, lengthFunc(length));
       })
     }
   }
 
+
   playNote(note, when, length) {
     this.synth.playNote(note, when, length, 20);
+  }
+}
+
+class Song {
+  constructor(bpm, beatsPerBar = 4) {
+    clock.setBpm(bpm);
+
+    this.beatCb = _.noop;
+    this.halfBeatCb = _.noop;
+    this.quarterBeatCb = _.noop;
+    this.eighthBeatCb = _.noop;
+
+    clock.onBeat((beat, whenFunc, lengthFunc) => {
+      const bar = Math.floor(beat / beatsPerBar);
+      const beatInBar = beat % beatsPerBar
+
+      this.beatCb(bar, beatInBar, whenFunc(0), lengthFunc);
+      this.callTickCallbacks(this.halfBeatCb, 2, bar, beatInBar, whenFunc, lengthFunc);
+      this.callTickCallbacks(this.quarterBeatCb, 4, bar, beatInBar, whenFunc, lengthFunc);
+      this.callTickCallbacks(this.eighthBeatCb, 8, bar, beatInBar, whenFunc, lengthFunc);
+    });
+  }
+
+  callTickCallbacks(cb, ticksPerBeat, bar, beatInBar, whenFunc, lengthFunc) {
+    for (let tick = 0; tick < ticksPerBeat; tick++) {
+      cb(bar, beatInBar, tick, whenFunc(tick / ticksPerBeat), lengthFunc);
+    }
+  }
+
+  onBeat(cb) {
+    this.beatCb = cb;
+  }
+
+  onHalfBeat(cb) {
+    this.halfBeatCb = cb;
+  }
+
+  onQuarterBeat(cb) {
+    this.quarterBeatCb = cb;
+  }
+
+  onEighthBeat(cb) {
+    this.eighthBeatCb = cb;
+  }
+
+  start() {
+    clock.start();
   }
 }
 
@@ -262,49 +301,59 @@ export default Promise.all([
     release: 0.2
   }, [1,1,0.5,0.5,0.2,0.2]);
 
-  clock.setBpm(124.55);
-  window.clock = clock;
-
   window.chic = new SingleBufferSampler(buffers.chic, {
     hit1: { offset: 34.52, length: 0.35, playbackRate: semitoneToRate(1.8) },
     hit2: { offset: 34.52, length: 0.4, playbackRate: semitoneToRate(3.8) },
   });
 
 
-  clock.onBeat((beat, whenFunc, lengthFunc) => {
-    synth.playNote(12, whenFunc(0), 0.1);
+  const song = new Song(124.55, 4);
 
-    if (beat % 8 == 4 || beat % 8 == 5) {
-      synth.playNote(14, whenFunc(0), 0.1);
+  song.onBeat((bar, beat, when, lengthFunc) => {
+    synth.playNote(12, when, 0.1);
+
+    if (bar % 2 == 1 && (beat == 0 || beat == 1)) {
+      synth.playNote(14, when, 0.1);
     }
 
-    if (beat % 64 == 6) {
-      septemberVocals.play('verse1_1', whenFunc(3/8));
+    mellotron.onBeat(bar, beat, when, lengthFunc);
+
+    if (bar % 4 == 2 && beat == 0) {
+      chic.play('hit1', when)
+    }
+    if (bar % 4 == 0 && beat == 0) {
+      chic.play('hit2', when)
+    }
+  });
+
+  song.onHalfBeat((bar, beat, tick, when, lengthFunc) => {
+    cissyBeat.onTick(bar, beat, tick, when);
+    drum808.onTick(bar, beat, tick, when);
+
+    if (bar % 2 == 1 && beat == 3) {
+      if (tick == 1) {
+        chic.playOffset(38.11, when, lengthFunc(1), 1, 0.82)
+      }
+    }
+    if (bar % 4 == 1 && beat == 3) {
+      if (tick == 0) {
+        chic.playOffset(38.11, when, lengthFunc(0.5), 1, 0.82)
+      }
+    }
+  });
+
+  song.onQuarterBeat((bar, beat, tick, when, lengthFunc) => {
+    cissyBass.onTick(bar, beat, tick, when);
+  });
+
+  song.onEighthBeat((bar, beat, tick, when, lengthFunc) => {
+    if (bar % 16 == 1 && beat == 2 && tick == 3) {
+      septemberVocals.play('verse1_1', when);
     }
 
-    if (beat % 64 == 38) {
-      septemberVocals.play('verse1_2', whenFunc(3/8));
+    if (bar % 16 == 9 && beat == 2 && tick == 3) {
+      septemberVocals.play('verse1_2', when);
     }
-
-    cissyBeat.onBeat(beat, whenFunc, lengthFunc);
-    cissyBass.onBeat(beat + 24, whenFunc, lengthFunc);
-    mellotron.onBeat(beat - 8, whenFunc, lengthFunc);
-    drum808.onBeat(beat, whenFunc, lengthFunc);
-
-    if (beat % 16 == 8) {
-      chic.play('hit1', whenFunc())
-    }
-    if (beat % 16 == 0) {
-      chic.play('hit2', whenFunc())
-    }
-
-    if (beat % 16 == 15) {
-      chic.playOffset(38.11, whenFunc(0), lengthFunc(0.5), 1, 0.82)
-    }
-    if (beat % 16 == 7 || beat % 16 == 15) {
-      chic.playOffset(38.11, whenFunc(0.5), lengthFunc(1), 1, 0.82)
-    }
-
   });
 
   const mixer = new Mixer([
@@ -365,10 +414,26 @@ class Bus extends Node {
     this.gain = createGain(1);
 
     if (typeof info.gain == 'number') {
-      this.gain.gain.value = info.gain;
+      this.setGain(info.gain);
     }
 
     connect(this.node, this.gain, this.output);
+
+    this.unMute();
+  }
+
+  setGain(gain) {
+    this.gain.gain.value = gain;
+  }
+
+  mute() {
+    this.muted = true;
+    this.output.gain.value = 0;
+  }
+
+  unMute() {
+    this.muted = false;
+    this.output.gain.value = 1;
   }
 }
 
@@ -388,10 +453,10 @@ class Mixer extends Node {
   }
 
   mute(bus) {
-    this.busses[bus].output.gain.value = 0;
+    this.busses[bus].mute();
   }
 
   unMute(bus) {
-    this.busses[bus].output.gain.value = 1;
+    this.busses[bus].unMute();
   }
 }
