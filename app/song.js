@@ -64,6 +64,12 @@ const loadMellotron = () => {
 }
 
 class Drum808 extends Node {
+  patterns = [
+    ["K K K K ", "K K K K ", "K K K K ", "K K K K "],
+    ["  S   S ", "  S  sS ", "  S   S ", "  S  sS "],
+    ["HHHHHHHH", "HHHHHHHH", "HHHHHHHH", "HHHHHHHH"]
+  ]
+
   constructor() {
     super();
 
@@ -80,30 +86,37 @@ class Drum808 extends Node {
     };
   }
 
-  play(instrument, when, gain=1) {
-    const node = this.instruments[instrument]();
-    const gainNode = createGain(gain);
+  play(instrument, when) {
+    const names = {
+      'K': 'kick',
+      's': 'snare',
+      'S': 'snare',
+      'H': 'hiHat'
+    };
+
+    const gains = {
+      'K': 1,
+      's': 0.5,
+      'S': 0.7,
+      'H': 0.5
+    };
+
+    const node = this.instruments[names[instrument]]();
+    const gainNode = createGain(gains[instrument]);
     connect(node, gainNode, this.output);
     node.start(when);
   }
 
+  ticks = 2
+
   onTick(section, bar, beat, tick, when) {
-    if (tick == 0) {
-      this.play('kick', when);
-      this.play('hiHat', when);
+    this.patterns.forEach(pattern => {
+      const instrument = pattern[bar % 4][beat * this.ticks + tick];
 
-      if (beat % 2 == 1) {
-        this.play('snare', when, 0.7);
+      if (instrument && instrument !== " ") {
+        this.play(instrument, when);
       }
-    }
-
-    if (bar % 2 == 1 && beat == 2 && tick == 1) {
-      this.play('snare', when, 0.5);
-    }
-
-    if (tick == 1) {
-      this.play('hiHat', when, 0.5);
-    }
+    });
   }
 }
 
@@ -143,8 +156,8 @@ class CissyBass extends Node {
 
 class CissyBeat extends Node {
   patterns = [
-    ["HHHHHHH", "HHHHHHHH", "HHHHHHHH", "HHHHHHHH"],
-    ["K S KKS", "K SK KS ", "K S KKS ", "K SK KSS"]
+    ["HHHHHHHH", "HHHHHHHH", "HHHHHHHH", "HHHHHHHH"],
+    ["K S KKS ", "K SK KS ", "K S KKS ", "K SK KSS"]
   ]
 
   constructor(cissyBuffer) {
