@@ -156,8 +156,9 @@ class CissyBass extends Node {
 
 class CissyBeat extends Node {
   patterns = [
-    ["HHHHHHHH", "HHHHHHHH", "HHHHHHHH", "HHHHHHHH"],
-    ["K S KKS ", "K SK KS ", "K S KKS ", "K SK KSS"]
+    ["H H H H H H H Hh", "H H H H H H HhHh", "H H H H H H HhHh", "H H H H H H HhHh"],
+    ["k   S   k k S  s", "k   S k   k S  k", "k   S  sk k S   ", "k   S k   k S Sk"],
+    ["j       j j     ", "j     j   j     ", "j       j j     ", "j     j   j     "]
   ]
 
   constructor(cissyBuffer) {
@@ -165,9 +166,16 @@ class CissyBeat extends Node {
 
     this.sampler = new SingleBufferSampler(cissyBuffer, {
       K: { offset: 42.73, length: 0.3 },
-      S: { offset: 38.45, length: 0.2 },
+      S: { offset: 38.45, length: 0.2, gain: 1.2 },
+      s: { offset: 38.45, length: 0.2, gain: 0.7 },
       H: { offset: 45.07, length: 0.2,
-           fadeOut: 0.05, playbackRate: semitoneToRate(-0.7) }
+           fadeOut: 0.05, playbackRate: semitoneToRate(-0.7) },
+      h: { offset: 45.07, length: 0.2, gain: 0.7,
+           fadeOut: 0.05, playbackRate: semitoneToRate(-0.7) },
+      k: { offset: 6.31, length: 0.13,
+           fadeOut: 0.01, playbackRate: semitoneToRate(1) },
+      j: { offset: 6.31, length: 0.13,
+           fadeOut: 0.01, playbackRate: semitoneToRate(-3) },
     });
 
     window.sampler = this.sampler;
@@ -175,7 +183,7 @@ class CissyBeat extends Node {
     connect(this.sampler, this.output);
   }
 
-  ticks = 2
+  ticks = 4
 
   onTick(section, bar, beat, tick, when) {
     this.patterns.forEach(pattern => {
@@ -434,12 +442,12 @@ export default Promise.all([
   });
 
   song.onHalfBeat((section, bar, beat, tick, when, lengthFunc) => {
-    cissyBeat.onTick(section, bar, beat, tick, when);
     drum808.onTick(section, bar, beat, tick, when);
     chic.onTick(section, bar, beat, tick, when, lengthFunc);
   });
 
   song.onQuarterBeat((section, bar, beat, tick, when, lengthFunc) => {
+    cissyBeat.onTick(section, bar, beat, tick, when);
     cissyBass.onTick(section, bar, beat, tick, when);
   });
 
