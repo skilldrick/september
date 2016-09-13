@@ -156,7 +156,7 @@ class CissyBass extends Node {
 
 class CissyBeat extends Node {
   patterns = [
-    ["H H H H H H H Hh", "H H H H H H HhHh", "H H H H H H HhHh", "H H H H H H HhHh"],
+    ["H H H H H H H Hh", "H H H H H H H Hh", "H H H H H H H Hh", "H H H H H H H Hh"],
     ["k   S   k k S  s", "k   S k   k S  k", "k   S  sk k S   ", "k   S k   k S Sk"],
     ["j       j j     ", "j     j   j     ", "j       j j     ", "j     j   j     "]
   ]
