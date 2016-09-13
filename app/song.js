@@ -248,31 +248,63 @@ class SeptemberVocals extends Node {
     super();
 
     this.sampler = new SingleBufferSampler(buffer, {
-      verse1_1: 22,
-      verse1_2: 37.4,
-      chorus1_1: 51.6
+      verse1_1: { offset: 22, length: 2.5 },
+      verse1_2: { offset: 24.65, length: 2.55 },
+      verse1_3: { offset: 28.07, length: 2.85 },
+      verse1_4: { offset: 31.85, length: 5.3 },
+      verse1_5: { offset: 37.4, length: 1.85 },
+      verse1_6: { offset: 39.25, length: 4.2 },
+      verse1_7: { offset: 43.45, length: 3.8 },
+      verse1_8: { offset: 47.25, length: 6.25, fadeOut: 0.01 },
+      chorus1_1: { offset: 53.53, length: 7.65, fadeIn: 0.01  },
+      chorus1_2: { offset: 61.17, length: 7.65 }
     });
 
-    this.sampler.setLengths({
-      verse1_1: 15.4,
-      verse1_2: 14.2,
-      chorus1_1: 15
-    });
+    window.sept = this.sampler;
 
     connect(this.sampler, this.output);
   }
 
+  //TODO: trigger based on a pattern
   onTick(section, bar, beat, tick, when, lengthFunc) {
     if (section == 'intro' && bar == 1 && beat == 2 && tick == 3) {
       this.sampler.play('verse1_1', when);
     }
 
-    if (section == 'verse1' && bar == 15 && beat == 2 && tick == 3) {
-      this.sampler.play('verse1_1', when);
+    if (section == 'verse1' && bar == 0 && beat == 3 && tick == 7) {
+      this.sampler.play('verse1_2', when);
+    }
+
+    if (section == 'verse1' && bar == 2 && beat == 3 && tick == 0) {
+      this.sampler.play('verse1_3', when);
+    }
+
+    if (section == 'verse1' && bar == 4 && beat == 2 && tick == 7) {
+      this.sampler.play('verse1_4', when);
     }
 
     if (section == 'verse1' && bar == 7 && beat == 2 && tick == 3) {
-      this.sampler.play('verse1_2', when);
+      this.sampler.play('verse1_5', when);
+    }
+
+    if (section == 'verse1' && bar == 8 && beat == 2 && tick == 2) {
+      this.sampler.play('verse1_6', when);
+    }
+
+    if (section == 'verse1' && bar == 10 && beat == 3 && tick == 0) {
+      this.sampler.play('verse1_7', when);
+    }
+
+    if (section == 'verse1' && bar == 12 && beat == 2 && tick == 7) {
+      this.sampler.play('verse1_8', when);
+    }
+
+    if (section == 'chorus1' && bar == 0 && beat == 0 && tick == 0) {
+      this.sampler.play('chorus1_1', when);
+    }
+
+    if (section == 'chorus1' && bar == 3 && beat == 3 && tick == 7) {
+      this.sampler.play('chorus1_2', when);
     }
   }
 }
@@ -468,6 +500,9 @@ export default Promise.all([
   connect(mixer, ctx.destination);
   window.mixer = mixer;
 
+  console.log(clock);
+  //clock.beat = 18 * 4;
+  //clock.timeInBeats = 18 * 4;
   //clock.start();
 
   const keydown = (event) => {
