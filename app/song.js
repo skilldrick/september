@@ -121,7 +121,7 @@ class Drum808 extends Node {
 }
 
 class CissyBass extends Node {
-  pattern = [
+  versePattern = [
     ["11.  .11.  ", "11.11.10.  ", "  .  .08.  ", "  .  .08.09"],
     ["10.  .08.  ", "06.06.01.  ", "  .  .03.  ", "  .  .03.03"],
 
@@ -135,6 +135,22 @@ class CissyBass extends Node {
     ["06.  .  .06", "06.  .06.  ", "  .  .06.  ", "  .06.06.06"]
   ]
 
+  chorusPattern = [
+    ["08.  .  .  ", "15.  .13.  ", "  .  .  .  ", "08.  .09.  "],
+    ["10.  .08.  ", "06.  .03.03", "01.  .02.  ", "03.  .06.  "],
+
+    ["08.  .  .  ", "15.  .13.  ", "  .  .  .  ", "08.08.09.  "],
+    ["10.  .08.  ", "06.  .  .03", "01.  .01.  ", "03.  .06.  "],
+
+    ["08.  .  .  ", "15.  .13.  ", "  .  .  .  ", "08.  .09.  "],
+    ["10.  .08.  ", "06.  .03.03", "01.  .02.  ", "03.  .06.  "],
+
+    ["06.  .06.  ", "  .  .16.18", "06.  .06.  ", "  .  .16.18"],
+    ["06.  .  .06", "06.  .06.  ", "  .  .06.  ", "  .06.06.06"]
+  ]
+
+  introPattern = this.versePattern.slice(6);
+
   constructor(cissyBuffer) {
     super();
 
@@ -144,8 +160,20 @@ class CissyBass extends Node {
   }
 
   onTick(section, bar, beat, tick, when) {
-    const loopBar = (section == 'intro') ? (bar + 6) % 8 : bar % 8;
-    const semitone = this.pattern[loopBar][beat].split(".")[tick];
+    let pattern;
+    switch (section) {
+    case 'intro':
+      pattern = this.introPattern;
+      break;
+    case 'chorus1':
+      pattern = this.chorusPattern;
+      break;
+    default:
+      pattern = this.versePattern;
+    }
+
+    const loopBar = bar % pattern.length;
+    const semitone = pattern[loopBar][beat].split(".")[tick];
     const gain = tick % 2 === 0 ? 1 : 0.5; // reduced gain for off beats
 
     if (semitone && semitone !== "  ") {
@@ -462,8 +490,8 @@ export default Promise.all([
   const song = new Song(124.55, 4, [
     { name: "intro", bars: 2 },
     { name: "verse1", bars: 16 },
-    { name: "chorus1", bars: 16 },
-    { name: "bridge1", bars: 16 },
+    { name: "chorus1", bars: 8 },
+    { name: "bridge1", bars: 8 },
     { name: "verse2", bars: 16 },
   ]);
 
@@ -526,6 +554,7 @@ export default Promise.all([
     if (event.shiftKey && semitone !== -1) {
       console.log(semitone);
       mellotron.playNote(semitone, getCurrentTime(), 0.2);
+      //cissyBass.sampler.playOffset(16.69, getCurrentTime(), 0.17, 1, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
     } else if (drum) {
       console.log(drum);
       drum808.play(drum, getCurrentTime());
