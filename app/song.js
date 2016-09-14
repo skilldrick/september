@@ -239,24 +239,47 @@ class Mellotron extends Node {
   }
 
   chords = {
-    A: [0, 4, 9, 12],
-    B: [2, 4, 9, 12],
-    C: [0, 4, 7, 12],
-    D: [0, 5, 7, 12]
+    A: [0, 4, 9],
+    B: [2, 4, 9],
+    C: [0, 4, 7],
+    D: [0, 5, 7],
+    E: [2, 5, 12],
+    F: [2, 7, 11],
+    G: [0, 7, 11],
+    H: [0, 5, 9],
   }
 
-  //         |   |   |   |   |   |   |   |   |
-  pattern = "A-----B-C---D---A---B---C-----D-"
+
+  //               |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+  versePattern  = "A-----B-C---D---A---B---C-----D-A-----B-C---D---A---B---C-------"
+  chorusPattern = "E---F---G---H---"
 
   onBeat(section, bar, beat, when, lengthFunc) {
-    if (section == 'intro') return;
+    let pattern;
+    switch (section) {
+    case 'intro':
+      pattern = null;
+      break;
+    case 'verse1':
+    case 'bridge1':
+      pattern = this.versePattern;
+      break;
+    case 'chorus1':
+      pattern = this.chorusPattern;
+      break;
+    default:
+      pattern = null
+    }
 
-    const loopBeat = (bar % 8) * 4 + beat;
-    const chordName = this.pattern[loopBeat];
+    if (!pattern) return;
+
+    const patternLength = pattern.length / 4;
+    const loopBeat = (bar % patternLength) * 4 + beat;
+    const chordName = pattern[loopBeat];
 
     if (chordName && chordName != ' ' && chordName != '-') {
       // find out how long this chord is based on chord name and number of hyphens
-      const length = this.pattern.slice(loopBeat).match(/^.-+/)[0].length;
+      const length = pattern.slice(loopBeat).match(/^.-+/)[0].length;
 
       this.chords[chordName].forEach(semitone => {
         this.playNote(semitone - 12, when, lengthFunc(length));
@@ -529,8 +552,8 @@ export default Promise.all([
   window.mixer = mixer;
 
   console.log(clock);
-  //clock.beat = 18 * 4;
-  //clock.timeInBeats = 18 * 4;
+  clock.beat = 18 * 4;
+  clock.timeInBeats = 18 * 4;
   //clock.start();
 
   const keydown = (event) => {
