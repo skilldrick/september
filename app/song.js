@@ -295,20 +295,78 @@ class Mellotron extends Node {
 }
 
 class SeptemberVocals extends Node {
+  pattern = {
+    intro: [
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "   A    ", "        "],
+    ],
+
+    verse1: [
+      ["        ", "        ", "        ", "       B"],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "C       "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "       D", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "   E    ", "        "],
+      ["        ", "        ", "  F     ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "G       "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "       H", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+    ],
+
+    chorus1: [
+      ["I       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "       J"],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+    ],
+
+    bridge1: [
+      ["K       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["L       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["M       ", "        ", "        ", "        "],
+      ["    N   ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+    ]
+  }
+
+
   constructor(buffer) {
     super();
 
     this.sampler = new SingleBufferSampler(buffer, {
-      verse1_1: { offset: 22, length: 2.5 },
-      verse1_2: { offset: 24.65, length: 2.55 },
-      verse1_3: { offset: 28.07, length: 2.85 },
-      verse1_4: { offset: 31.85, length: 5.3 },
-      verse1_5: { offset: 37.4, length: 1.85 },
-      verse1_6: { offset: 39.25, length: 4.2 },
-      verse1_7: { offset: 43.45, length: 3.8 },
-      verse1_8: { offset: 47.25, length: 6.25, fadeOut: 0.01 },
-      chorus1_1: { offset: 53.53, length: 7.65, fadeIn: 0.01  },
-      chorus1_2: { offset: 61.17, length: 7.65 }
+      // verse
+      A: { offset: 22, length: 2.5 },
+      B: { offset: 24.65, length: 2.55 },
+      C: { offset: 28.07, length: 2.85 },
+      D: { offset: 31.85, length: 5.3 },
+      E: { offset: 37.4, length: 1.85 },
+      F: { offset: 39.25, length: 4.2 },
+      G: { offset: 43.45, length: 3.8 },
+      H: { offset: 47.25, length: 6.25, fadeOut: 0.01 },
+
+      //chorus
+      I: { offset: 53.53, length: 7.65, fadeIn: 0.01  },
+      J: { offset: 61.17, length: 7.65 },
+
+      //bridge
+      K: { offset: 68.82, length: 3.81 },
+      L: { offset: 72.60, length: 3.77 },
+      M: { offset: 76.4, length: 2.1 },
+      N: { offset: 78.5, length: 3 },
     });
 
     window.sept = this.sampler;
@@ -316,47 +374,17 @@ class SeptemberVocals extends Node {
     connect(this.sampler, this.output);
   }
 
-  //TODO: trigger based on a pattern
   onTick(section, bar, beat, tick, when, lengthFunc) {
-    if (section == 'intro' && bar == 1 && beat == 2 && tick == 3) {
-      this.sampler.play('verse1_1', when);
-    }
+    const sample = this.pattern[section][bar][beat][tick];
 
-    if (section == 'verse1' && bar == 0 && beat == 3 && tick == 7) {
-      this.sampler.play('verse1_2', when);
+    if (sample && sample !== " ") {
+      this.sampler.play(sample, when);
     }
-
-    if (section == 'verse1' && bar == 2 && beat == 3 && tick == 0) {
-      this.sampler.play('verse1_3', when);
-    }
-
-    if (section == 'verse1' && bar == 4 && beat == 2 && tick == 7) {
-      this.sampler.play('verse1_4', when);
-    }
-
-    if (section == 'verse1' && bar == 7 && beat == 2 && tick == 3) {
-      this.sampler.play('verse1_5', when);
-    }
-
-    if (section == 'verse1' && bar == 8 && beat == 2 && tick == 2) {
-      this.sampler.play('verse1_6', when);
-    }
-
-    if (section == 'verse1' && bar == 10 && beat == 3 && tick == 0) {
-      this.sampler.play('verse1_7', when);
-    }
-
-    if (section == 'verse1' && bar == 12 && beat == 2 && tick == 7) {
-      this.sampler.play('verse1_8', when);
-    }
-
-    if (section == 'chorus1' && bar == 0 && beat == 0 && tick == 0) {
-      this.sampler.play('chorus1_1', when);
-    }
-
+    /*
     if (section == 'chorus1' && bar == 3 && beat == 3 && tick == 7) {
       this.sampler.play('chorus1_2', when);
     }
+    */
   }
 }
 
@@ -552,8 +580,8 @@ export default Promise.all([
   window.mixer = mixer;
 
   console.log(clock);
-  clock.beat = 18 * 4;
-  clock.timeInBeats = 18 * 4;
+  //clock.beat = 26 * 4;
+  //clock.timeInBeats = 26 * 4;
   //clock.start();
 
   const keydown = (event) => {
