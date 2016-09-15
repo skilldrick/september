@@ -261,10 +261,14 @@ class Mellotron extends Node {
       pattern = null;
       break;
     case 'verse1':
+    case 'verse2':
     case 'bridge1':
+    case 'bridge2':
       pattern = this.versePattern;
       break;
     case 'chorus1':
+    case 'chorus2':
+    case 'chorus3':
       pattern = this.chorusPattern;
       break;
     default:
@@ -321,10 +325,10 @@ class SeptemberVocals extends Node {
     ],
 
     chorus1: [
-      ["I       ", "        ", "        ", "        "],
+      ["A       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
-      ["        ", "        ", "        ", "       J"],
+      ["        ", "        ", "        ", "       B"],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
@@ -332,15 +336,73 @@ class SeptemberVocals extends Node {
     ],
 
     bridge1: [
-      ["K       ", "        ", "        ", "        "],
+      ["A       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
-      ["L       ", "        ", "        ", "        "],
+      ["B       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
-      ["M       ", "        ", "        ", "        "],
-      ["    N   ", "        ", "        ", "        "],
+      ["C       ", "        ", "        ", "        "],
+      ["    D   ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "    a   ", "        "],
+    ],
+
+    verse2: [
+      ["        ", "        ", "    B   ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "       C", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "D       "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "       E", "        "],
+      ["        ", "        ", "   F    ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "   G    ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "       H"],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+    ],
+
+    chorus2: [
+      ["A       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["B       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "    C   ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["D       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["E       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+    ],
+
+    chorus3: [
+      ["   A    ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["   B    ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
     ]
+
   }
 
 
@@ -348,25 +410,46 @@ class SeptemberVocals extends Node {
     super();
 
     this.sampler = new SingleBufferSampler(buffer, {
-      // verse
-      A: { offset: 22, length: 2.5 },
-      B: { offset: 24.65, length: 2.55 },
-      C: { offset: 28.07, length: 2.85 },
-      D: { offset: 31.85, length: 5.3 },
-      E: { offset: 37.4, length: 1.85 },
-      F: { offset: 39.25, length: 4.2 },
-      G: { offset: 43.45, length: 3.8 },
-      H: { offset: 47.25, length: 6.25, fadeOut: 0.01 },
+      // verse 1
+      intro_A: { offset: 22, length: 2.5 },
+      verse1_B: { offset: 24.65, length: 2.55 },
+      verse1_C: { offset: 28.07, length: 2.85 },
+      verse1_D: { offset: 31.85, length: 5.3 },
+      verse1_E: { offset: 37.4, length: 1.85 },
+      verse1_F: { offset: 39.25, length: 4.2 },
+      verse1_G: { offset: 43.45, length: 3.8 },
+      verse1_H: { offset: 47.25, length: 6.25, fadeOut: 0.01 },
 
-      //chorus
-      I: { offset: 53.53, length: 7.65, fadeIn: 0.01  },
-      J: { offset: 61.17, length: 7.65 },
+      // chorus 1
+      chorus1_A: { offset: 53.53, length: 7.65, fadeIn: 0.01  },
+      chorus1_B: { offset: 61.17, length: 7.65 },
 
-      //bridge
-      K: { offset: 68.82, length: 3.81 },
-      L: { offset: 72.60, length: 3.77 },
-      M: { offset: 76.4, length: 2.1 },
-      N: { offset: 78.5, length: 3 },
+      // bridge
+      bridge1_A: { offset: 68.8, length: 3.81 },
+      bridge1_B: { offset: 72.58, length: 3.77 },
+      bridge1_C: { offset: 76.4, length: 2.1 },
+      bridge1_D: { offset: 78.5, length: 3 },
+
+      // verse 2
+      bridge1_a: { offset: 83.2, length: 1.9 },
+      verse2_B: { offset: 85.1, length: 3.5 },
+      verse2_C: { offset: 89.1, length: 3.3 },
+      verse2_D: { offset: 92.97, length: 5 },
+      verse2_E: { offset: 98.6, length: 1.7 },
+      verse2_F: { offset: 100.3, length: 3.8 },
+      verse2_G: { offset: 104.1, length: 3.8 },
+      verse2_H: { offset: 108.58, length: 5.84, fadeOut: 0.05 },
+
+      // chorus 2
+      chorus2_A: { offset: 114.3, length: 7.65, fadeIn: 0.01  },
+      chorus2_B: { offset: 121.97, length: 6.8 },
+      chorus2_C: { offset: 128.78, length: 4.5 },
+      chorus2_D: { offset: 133.27, length: 3.8 },
+      chorus2_E: { offset: 137.1, length: 7.2 },
+      chorus2_F: { offset: 144.85, length: 7.5 },
+
+      chorus3_A: { offset: 144.85, length: 7.5 },
+      chorus3_B: { offset: 152.45, length: 6.5 },
     });
 
     window.sept = this.sampler;
@@ -378,13 +461,8 @@ class SeptemberVocals extends Node {
     const sample = this.pattern[section][bar][beat][tick];
 
     if (sample && sample !== " ") {
-      this.sampler.play(sample, when);
+      this.sampler.play(section + "_" + sample, when);
     }
-    /*
-    if (section == 'chorus1' && bar == 3 && beat == 3 && tick == 7) {
-      this.sampler.play('chorus1_2', when);
-    }
-    */
   }
 }
 
@@ -544,6 +622,8 @@ export default Promise.all([
     { name: "chorus1", bars: 8 },
     { name: "bridge1", bars: 8 },
     { name: "verse2", bars: 16 },
+    { name: "chorus2", bars: 16 },
+    { name: "chorus3", bars: 16 },
   ]);
 
   song.onBeat((section, bar, beat, when, lengthFunc) => {
@@ -580,9 +660,8 @@ export default Promise.all([
   window.mixer = mixer;
 
   console.log(clock);
-  //clock.beat = 26 * 4;
-  //clock.timeInBeats = 26 * 4;
-  //clock.start();
+  //clock.beat = 64 * 4;
+  //clock.timeInBeats = 64 * 4;
 
   const keydown = (event) => {
     const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
