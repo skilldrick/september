@@ -15,7 +15,9 @@ import Clap from 'clappy';
 import CowBell from 'cow-bell';
 import Maracas from 'maracas';
 import Claves from 'claves';
+import { Distortion, FeedbackDelay, Reverb } from 'sine/fx';
 
+import FxChain from './fx';
 
 const loadBuffers = (fileNames) => {
   // Returns a Promise of an object of buffer names to buffers
@@ -29,7 +31,8 @@ const loadInitialBuffers = () => {
   const fileNames = {
     september: 'september-acapella.mp3',
     cissy: 'cissy-strut-start.mp3',
-    chic: 'chic.mp3'
+    chic: 'chic.mp3',
+    impulse: 'conic_echo_long_hall_short.mp3'
   };
 
   return loadBuffers(fileNames);
@@ -670,6 +673,61 @@ class Song {
   }
 }
 
+class Channel extends Node {
+  constructor(info) {
+    super();
+    this.name = info.name;
+    this.node = info.node;
+    this.gain = createGain(1);
+
+    if (typeof info.gain == 'number') {
+      this.setGain(info.gain);
+    }
+
+    connect(this.node, this.gain, this.output);
+
+    this.unMute();
+  }
+
+  setGain(gain) {
+    this.gain.gain.value = gain;
+  }
+
+  mute() {
+    this.muted = true;
+    this.output.gain.value = 0;
+  }
+
+  unMute() {
+    this.muted = false;
+    this.output.gain.value = 1;
+  }
+}
+
+class Mixer extends Node {
+  constructor(nodes, buffers) {
+    super();
+
+    this.masterGain = createGain(1);
+
+    this.channels = nodes.map(info => {
+      const channel = new Channel(info);
+      connect(channel, this.masterGain);
+      return channel;
+    });
+
+    connect(this.masterGain, this.output);
+  }
+
+  mute(channel) {
+    this.channels[channel].mute();
+  }
+
+  unMute(channel) {
+    this.channels[channel].unMute();
+  }
+}
+
 export default Promise.all([
   loadInitialBuffers(),
   loadMellotron()
@@ -714,6 +772,9 @@ export default Promise.all([
     septemberVocals.onTick(section, bar, beat, tick, when, lengthFunc);
   });
 
+  // busses are a list of fx that can be individually bypassed
+  //const busA = new Bus
+
   const mixer = new Mixer([
     { name: 'Synth', node: synthNotes, gain: 0.2 },
     { name: 'September Vocals', node: septemberVocals },
@@ -722,9 +783,12 @@ export default Promise.all([
     { name: 'Chic', node: chic },
     { name: 'Mellotron', node: mellotron, gain: 0.1 },
     { name: 'Drum 808', node: drum808 }
-  ]);
+  ], buffers);
 
-  connect(mixer, ctx.destination);
+  const fxChain = new FxChain(buffers.impulse);
+  fxChain.connectNodes(['reverb', 'compressor']);
+
+  connect(mixer, fxChain, ctx.destination);
   window.mixer = mixer;
 
   console.log(clock);
@@ -765,57 +829,3 @@ export default Promise.all([
   };
 });
 
-class Channel extends Node {
-  constructor(info) {
-    super();
-    this.name = info.name;
-    this.node = info.node;
-    this.gain = createGain(1);
-
-    if (typeof info.gain == 'number') {
-      this.setGain(info.gain);
-    }
-
-    connect(this.node, this.gain, this.output);
-
-    this.unMute();
-  }
-
-  setGain(gain) {
-    this.gain.gain.value = gain;
-  }
-
-  mute() {
-    this.muted = true;
-    this.output.gain.value = 0;
-  }
-
-  unMute() {
-    this.muted = false;
-    this.output.gain.value = 1;
-  }
-}
-
-class Mixer extends Node {
-  constructor(nodes) {
-    super();
-
-    this.masterGain = createGain(1);
-
-    this.channels = nodes.map(info => {
-      const channel = new Channel(info);
-      connect(channel, this.masterGain);
-      return channel;
-    });
-
-    connect(this.masterGain, this.output);
-  }
-
-  mute(channel) {
-    this.channels[channel].mute();
-  }
-
-  unMute(channel) {
-    this.channels[channel].unMute();
-  }
-}
