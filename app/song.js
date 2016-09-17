@@ -1,6 +1,6 @@
 import getAudioBuffer from 'sine/ajax';
 import { ctx, getCurrentTime } from 'sine/audio';
-import { createBufferSource, createGain } from 'sine/nodes';
+import { createBufferSource, createDynamicsCompressor, createFilter, createGain } from 'sine/nodes';
 import { connect, Node, semitoneToRate } from 'sine/util';
 import clock from 'sine/clock';
 import { FmSynth, HarmonicSynth, SamplerSynth } from 'sine/synth';
@@ -18,6 +18,7 @@ import Claves from 'claves';
 import { Distortion, FeedbackDelay, Reverb } from 'sine/fx';
 
 import FxChain from './fx';
+import { AM, Multiplier, StereoChorus } from './fx';
 
 const loadBuffers = (fileNames) => {
   // Returns a Promise of an object of buffer names to buffers
@@ -168,8 +169,14 @@ class CissyBass extends Node {
 
     this.synthGain = createGain();
 
-    connect(this.sampler, this.output);
-    connect(this.synth, this.synthGain, this.output);
+    const distortion = new Distortion(1.01);
+    const filter = createFilter(250);
+    filter.type = 'peaking';
+    window.filter = filter;
+    const compressor = createDynamicsCompressor();
+
+    connect(this.sampler, filter, compressor, this.output);
+    connect(this.synth, this.synthGain, filter, compressor, this.output);
   }
 
   onTick(section, bar, beat, tick, when) {
@@ -250,7 +257,9 @@ class Mellotron extends Node {
       release: 0.2
     }, mellotronBuffers)
 
-    connect(this.synth, this.output);
+    const multiplier = new Multiplier(0.15);
+    const chorus = new StereoChorus(0.2, 0.5);
+    connect(this.synth, multiplier, chorus, this.output);
   }
 
   chords = {
@@ -712,7 +721,13 @@ class Mixer extends Node {
 
     this.channels = nodes.map(info => {
       const channel = new Channel(info);
-      connect(channel, this.masterGain);
+
+      if (info.fx) {
+        connect(channel, info.fx, this.masterGain);
+      } else {
+        connect(channel, this.masterGain);
+      }
+
       return channel;
     });
 
@@ -725,6 +740,13 @@ class Mixer extends Node {
 
   unMute(channel) {
     this.channels[channel].unMute();
+  }
+}
+
+class Bus extends Node {
+  constructor() {
+    super();
+
   }
 }
 
@@ -772,23 +794,29 @@ export default Promise.all([
     septemberVocals.onTick(section, bar, beat, tick, when, lengthFunc);
   });
 
+
   // busses are a list of fx that can be individually bypassed
   //const busA = new Bus
+  //FX need to have a "reflection" API so you can know which knobs to twiddle,
+  //should also include defaults values and descriptions and ranges for values?
+  //
+  //TODO: make fx only affect certain channels
+  //
+  const fxChain1 = new FxChain(buffers.impulse);
+  fxChain1.connectNodes(['reverb', 'delay', 'compressor']);
+  fxChain1.output.gain.value = 2;
 
   const mixer = new Mixer([
-    { name: 'Synth', node: synthNotes, gain: 0.2 },
-    { name: 'September Vocals', node: septemberVocals },
+    { name: 'Synth', node: synthNotes, gain: 0.2, fx: fxChain1 },
+    { name: 'September Vocals', node: septemberVocals, fx: fxChain1 },
     { name: 'Cissy Beat', node: cissyBeat },
     { name: 'Cissy Bass', node: cissyBass },
-    { name: 'Chic', node: chic },
-    { name: 'Mellotron', node: mellotron, gain: 0.1 },
+    { name: 'Chic', node: chic, fx: fxChain1 },
+    { name: 'Mellotron', node: mellotron, gain: 0.15, fx: fxChain1 },
     { name: 'Drum 808', node: drum808 }
   ], buffers);
 
-  const fxChain = new FxChain(buffers.impulse);
-  fxChain.connectNodes(['reverb', 'compressor']);
-
-  connect(mixer, fxChain, ctx.destination);
+  connect(mixer, ctx.destination);
   window.mixer = mixer;
 
   console.log(clock);

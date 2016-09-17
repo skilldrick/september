@@ -88,7 +88,7 @@ class Splitter extends Node {
   }
 }
 
-class StereoChorus extends Node {
+export class StereoChorus extends Node {
   // http://www.soundonsound.com/sos/jun04/articles/synthsecrets.htm
   constructor(lfoFrequency, amount) {
     super();
@@ -119,7 +119,7 @@ class StereoChorus extends Node {
   }
 }
 
-class Multiplier extends MixNode {
+export class Multiplier extends MixNode {
   constructor(mix) {
     super(mix);
     const modulatorGain = createGain(1);
@@ -130,7 +130,7 @@ class Multiplier extends MixNode {
   }
 }
 
-class AM extends MixNode {
+export class AM extends MixNode {
   /*
   * @param frequency   Frequency to modulate the amplitude
   * @param amount      How much the amplitude modulates by
@@ -165,7 +165,7 @@ export default class FxChain extends Node {
     super();
 
     this.fx = {
-      chorus: new StereoChorus(0.5, 5),
+      chorus: new StereoChorus(0.2, 1),
       multiplier: new Multiplier(0.6),
       tremolo: new Tremolo(8, 0.8),
       distortion: new Distortion(1.5),
