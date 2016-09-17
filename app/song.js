@@ -247,13 +247,12 @@ class Mellotron extends Node {
     F: [2, 7, 11],
     G: [0, 7, 11],
     H: [0, 5, 9],
+    I: [0, 5, 7],
   }
-
-  // maybe have a transition between bridge1 and chorus2? Could just be one pick up chord
 
   //               |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
   versePattern  = "A-----B-C---D---A---B---C-----D-A-----B-C---D---A---B---C-------"
-  chorusPattern = "E---F---G---H---"
+  chorusPattern = "E---F---G---H-I-"
 
   onBeat(section, bar, beat, when, lengthFunc) {
     let pattern;
@@ -701,8 +700,8 @@ export default Promise.all([
   window.mixer = mixer;
 
   console.log(clock);
-  //clock.beat = 90 * 4;
-  //clock.timeInBeats = 90 * 4;
+  //clock.beat = 18 * 4;
+  //clock.timeInBeats = 18 * 4;
 
   const keydown = (event) => {
     const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
