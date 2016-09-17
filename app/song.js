@@ -101,7 +101,7 @@ class Drum808 extends Node {
       'H': 0.5
     };
 
-    const node = this.instruments[names[instrument]]();
+    const node = (this.instruments[names[instrument]] || this.instruments[instrument])();
     const gainNode = createGain(gains[instrument]);
     connect(node, gainNode, this.output);
     node.start(when);
