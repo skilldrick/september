@@ -428,6 +428,22 @@ class SeptemberVocals extends Node {
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
     ]
 
   }
@@ -663,7 +679,7 @@ export default Promise.all([
     { name: "verse2", bars: 16 },
     { name: "chorus2", bars: 16 },
     { name: "chorus3", bars: 16 },
-    { name: "chorus4", bars: 32 },
+    { name: "chorus4", bars: 48 },
   ]);
 
   song.onBeat((section, bar, beat, when, lengthFunc) => {
@@ -700,8 +716,8 @@ export default Promise.all([
   window.mixer = mixer;
 
   console.log(clock);
-  //clock.beat = 18 * 4;
-  //clock.timeInBeats = 18 * 4;
+  //clock.beat = 54 * 4;
+  //clock.timeInBeats = 54 * 4;
 
   const keydown = (event) => {
     const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
