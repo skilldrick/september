@@ -156,7 +156,17 @@ class CissyBass extends Node {
 
     this.sampler = new SingleBufferSampler(cissyBuffer);
 
+    this.synth = new HarmonicSynth({
+      attack: 0.001,
+      decay: 0.1,
+      sustain: 0.6,
+      release: 0.2
+    }, [1,0,0.5,0.3,0.1]);
+
+    this.synthGain = createGain();
+
     connect(this.sampler, this.output);
+    connect(this.synth, this.synthGain, this.output);
   }
 
   onTick(section, bar, beat, tick, when) {
@@ -174,10 +184,12 @@ class CissyBass extends Node {
 
     const loopBar = bar % pattern.length;
     const semitone = pattern[loopBar][beat].split(".")[tick];
-    const gain = tick % 2 === 0 ? 1 : 0.5; // reduced gain for off beats
+    const gain = tick % 2 === 0 ? 1 : 0.5; // reduced gain for off-beats
 
     if (semitone && semitone !== "  ") {
       this.sampler.playOffset(16.69, when, 0.17, gain, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
+      this.synthGain.gain.value = 0.3 * gain;
+      this.synth.playNote(semitone - 42, when, 0.1);
     }
   }
 }
