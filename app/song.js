@@ -753,7 +753,7 @@ export default Promise.all([
   };
 });
 
-class Bus extends Node {
+class Channel extends Node {
   constructor(info) {
     super();
     this.name = info.name;
@@ -790,20 +790,20 @@ class Mixer extends Node {
 
     this.masterGain = createGain(1);
 
-    this.busses = nodes.map(info => {
-      const bus = new Bus(info);
-      connect(bus, this.masterGain);
-      return bus;
+    this.channels = nodes.map(info => {
+      const channel = new Channel(info);
+      connect(channel, this.masterGain);
+      return channel;
     });
 
     connect(this.masterGain, this.output);
   }
 
-  mute(bus) {
-    this.busses[bus].mute();
+  mute(channel) {
+    this.channels[channel].mute();
   }
 
-  unMute(bus) {
-    this.busses[bus].unMute();
+  unMute(channel) {
+    this.channels[channel].unMute();
   }
 }
