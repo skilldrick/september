@@ -2,15 +2,34 @@
 import React, { Component } from 'react';
 import { render } from 'react-dom';
 
+// material-ui components
+import { deepOrange500 } from 'material-ui/styles/colors';
+import getMuiTheme from 'material-ui/styles/getMuiTheme';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import CircularProgress from 'material-ui/CircularProgress';
+import RaisedButton from 'material-ui/RaisedButton';
+import injectTapEventPlugin from 'react-tap-event-plugin';
+
 import Footer from './Footer';
 import songPromise from './song';
 
+// Needed for onTouchTap
+// http://stackoverflow.com/a/34015469/988941
+injectTapEventPlugin();
+
+const muiTheme = getMuiTheme({
+  palette: {
+    accent1Color: deepOrange500,
+  },
+});
 
 class App extends Component {
-  disabledStyle() {
-    return {
-      fontFamily: 'Roboto, sans-serif'
-    }
+  disabledStyle = {
+    fontFamily: 'Roboto, sans-serif'
+  }
+
+  headingStyle = {
+    fontFamily: 'Roboto, sans-serif'
   }
 
   render() {
@@ -21,20 +40,29 @@ class App extends Component {
 
   renderDisabled() {
     return (
-      <div style={this.disabledStyle()}>
-        <p>Loading Audio ...</p>
-      </div>
-    )
+      <MuiThemeProvider muiTheme={muiTheme}>
+        <div style={this.disabledStyle}>
+          <p>Loading Audio ...</p>
+          <CircularProgress />
+        </div>
+      </MuiThemeProvider>);
   }
 
   renderEnabled() {
     return (
-      <div>
-        <button onClick={() => this.clock.start()}>Play!</button>
-        <button onClick={() => this.clock.stop()}>Stop!</button>
+      <MuiThemeProvider muiTheme={muiTheme}>
+        <div>
+          <RaisedButton
+            onClick={() => this.clock.start()}
+            style={{ marginRight: 10 }}
+          >
+            Play!
+          </RaisedButton>
+          <RaisedButton onClick={() => this.clock.stop()}>Stop!</RaisedButton>
 
-        <Footer />
-      </div>
+          <Footer />
+        </div>
+      </MuiThemeProvider>
     );
   }
 
