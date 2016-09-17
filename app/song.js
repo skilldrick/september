@@ -249,6 +249,7 @@ class Mellotron extends Node {
     H: [0, 5, 9],
   }
 
+  // maybe have a transition between bridge1 and chorus2? Could just be one pick up chord
 
   //               |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
   versePattern  = "A-----B-C---D---A---B---C-----D-A-----B-C---D---A---B---C-------"
@@ -262,13 +263,13 @@ class Mellotron extends Node {
       break;
     case 'verse1':
     case 'verse2':
-    case 'bridge1':
-    case 'bridge2':
       pattern = this.versePattern;
       break;
     case 'chorus1':
     case 'chorus2':
     case 'chorus3':
+    case 'chorus4':
+    case 'bridge1':
       pattern = this.chorusPattern;
       break;
     default:
@@ -392,12 +393,39 @@ class SeptemberVocals extends Node {
       ["   B    ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "    C   ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["D       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["E       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "    a   ", "        "],
+    ],
+
+    chorus4: [
+      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["B       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["C       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
+      ["E       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["E       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["F       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
+      ["E       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["E       ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "        "],
+      ["F       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
@@ -448,8 +476,20 @@ class SeptemberVocals extends Node {
       chorus2_E: { offset: 137.1, length: 7.2 },
       chorus2_F: { offset: 144.85, length: 7.5 },
 
+      // chorus 3
       chorus3_A: { offset: 144.85, length: 7.5 },
       chorus3_B: { offset: 152.45, length: 6.5 },
+      chorus3_C: { offset: 159.1, length: 4.5 },
+      chorus3_D: { offset: 163.65, length: 3.75 },
+      chorus3_E: { offset: 167.4, length: 6.8 },
+
+      // chorus 4
+      chorus3_a: { offset: 174.2, length: 4.5 },
+      chorus4_B: { offset: 178.7, length: 3.7 },
+      chorus4_C: { offset: 182.45, length: 7.4 },
+      chorus4_D: { offset: 190, length: 3.7 },
+      chorus4_E: { offset: 193.7, length: 3.7 },
+      chorus4_F: { offset: 197.4, length: 7 },
     });
 
     window.sept = this.sampler;
@@ -624,6 +664,7 @@ export default Promise.all([
     { name: "verse2", bars: 16 },
     { name: "chorus2", bars: 16 },
     { name: "chorus3", bars: 16 },
+    { name: "chorus4", bars: 32 },
   ]);
 
   song.onBeat((section, bar, beat, when, lengthFunc) => {
@@ -660,8 +701,8 @@ export default Promise.all([
   window.mixer = mixer;
 
   console.log(clock);
-  //clock.beat = 64 * 4;
-  //clock.timeInBeats = 64 * 4;
+  //clock.beat = 90 * 4;
+  //clock.timeInBeats = 90 * 4;
 
   const keydown = (event) => {
     const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
