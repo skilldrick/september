@@ -695,7 +695,7 @@ class ChannelBase extends Node {
     this.name = info.name;
 
     this.channelGain = createGain();
-    this.setGain(info.gain);
+    this.setGain(info.gain || 1);
   }
 
   setGain(gain) {
@@ -720,6 +720,7 @@ class Channel extends ChannelBase {
     super(info);
 
     this.node = info.node;
+    this.bus = info.bus;
     connect(this.node, this.channelGain, this.output);
   }
 
@@ -732,6 +733,8 @@ class Bus extends ChannelBase {
 
     this.fxChain = info.fx;
     this.key = info.key;
+    this.bus = info.bus;
+
     connect(this.input, this.fxChain, this.channelGain, this.output);
   }
 }
@@ -740,13 +743,13 @@ class Mixer extends Node {
   constructor(options) {
     super();
 
-    this.masterGain = createGain(1);
+    this.masterBus = new Bus({ key: 'Master', name: 'Master', fx: createGain(1), bus: 'Out' });
 
     this.busses = options.busses.map(info => {
       const bus = new Bus(info);
-      connect(bus, this.masterGain);
+      connect(bus, this.masterBus);
       return bus;
-    });
+    }).concat([this.masterBus]);
 
     this.busMap = _.fromPairs(this.busses.map(bus => [bus.key, bus]));
 
@@ -762,7 +765,7 @@ class Mixer extends Node {
       if (info.bus) {
         connect(channel, this.busMap[info.bus]);
       } else {
-        connect(channel, this.masterGain);
+        connect(channel, this.masterBus);
       }
 
       return channel;
@@ -771,7 +774,7 @@ class Mixer extends Node {
     this.soloState = options.channels.map(_ => false);
     this.muteState = options.channels.map(_ => false);
 
-    connect(this.masterGain, this.output);
+    connect(this.masterBus, this.output);
   }
 
   toggleSolo(channel) {
@@ -878,8 +881,8 @@ export default Promise.all([
       { name: 'Vocals', node: septemberVocals, gain: 1.5, bus: 'A' }
     ],
     busses: [
-      { name: 'Bus A', key: 'A', gain: 2, fx: fxChain1 },
-      //{ name: 'Bus B', key: 'B' },
+      { name: 'A', key: 'A', gain: 2, fx: fxChain1 },
+      //{ name: 'B', key: 'B' },
     ]
   });
 

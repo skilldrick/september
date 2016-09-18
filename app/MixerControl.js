@@ -4,6 +4,7 @@ import Checkbox from 'material-ui/Checkbox';
 import Slider from 'material-ui/Slider';
 import FontIcon from 'material-ui/FontIcon';
 import IconButton from 'material-ui/IconButton';
+import Chip from 'material-ui/Chip';
 
 
 import _ from 'lodash';
@@ -21,6 +22,7 @@ export default class MixerControl extends Component {
         mute={this.state.muteState[i]}
         defaultValue={el.getGainDb()}
         label={el.name}
+        bus={el.bus}
         key={i}
       />);
     });
@@ -30,6 +32,7 @@ export default class MixerControl extends Component {
         onChange={(val) => this.props.mixer.busses[i].setGainDb(val) }
         defaultValue={el.getGainDb()}
         label={el.name}
+        bus={el.bus}
         key={i}
       />);
     });
@@ -40,6 +43,7 @@ export default class MixerControl extends Component {
         flexWrap: 'wrap'
       }, this.props.style)}>
         {channelControls}
+        <VerticalDivider />
         {busControls}
       </div>
     );
@@ -66,6 +70,14 @@ export default class MixerControl extends Component {
   }
 }
 
+function VerticalDivider(props) {
+  const style = {
+    width: 1,
+    borderRight: '1px solid #e0e0e0'
+  }
+
+  return <div style={style}></div>;
+}
 
 class ChannelControl extends Component {
   labelStyle = {
@@ -125,6 +137,8 @@ class ChannelControl extends Component {
         </IconButton>
 
         <p style={this.labelStyle}>{this.props.label}</p>
+
+        <Chip style={{margin: 'auto'}}>{this.props.bus || "Master"}</Chip>
       </div>
     );
   }
