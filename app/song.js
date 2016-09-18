@@ -698,8 +698,6 @@ class Channel extends Node {
     this.setGain(info.gain);
 
     connect(this.node, this.gain, this.output);
-
-    this.unMute();
   }
 
   setGain(gain) {
@@ -716,16 +714,6 @@ class Channel extends Node {
 
   getGainDb() {
     return ratioToDb(this.getGain());
-  }
-
-  mute() {
-    this.muted = true;
-    this.output.gain.value = 0;
-  }
-
-  unMute() {
-    this.muted = false;
-    this.output.gain.value = 1;
   }
 }
 
@@ -753,15 +741,51 @@ class Mixer extends Node {
       return channel;
     });
 
+    this.soloState = nodes.map(_ => false);
+    this.muteState = nodes.map(_ => false);
+
     connect(this.masterGain, this.output);
   }
 
-  mute(channel) {
-    this.channels[channel].mute();
+  toggleSolo(channel) {
+    this.muteSoloChange(this.soloState, channel, true);
   }
 
-  unMute(channel) {
-    this.channels[channel].unMute();
+  toggleMute(channel) {
+    this.muteSoloChange(this.muteState, channel, true);
+  }
+
+  // checks to see if any channels are soloed
+  soloMode() {
+    return _.some(this.soloState);
+  }
+
+  setGain(channels, gain) {
+    channels.forEach(channel => channel.output.gain.value = gain);
+  }
+
+  disableChannels(channels) {
+    this.setGain(channels, 0);
+  }
+
+  enableChannels(channels) {
+    this.setGain(channels, 1);
+  }
+
+  muteSoloChange(field, channel) {
+    field[channel] = !field[channel];
+
+    if (this.soloMode()) {
+      const soloChannels = this.channels.filter((el, i) => this.soloState[i]);
+
+      this.disableChannels(this.channels);
+      this.enableChannels(soloChannels);
+    } else {
+      const muteChannels = this.channels.filter((el, i) => this.muteState[i]);
+
+      this.enableChannels(this.channels);
+      this.disableChannels(muteChannels);
+    }
   }
 }
 
