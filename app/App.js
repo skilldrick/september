@@ -10,6 +10,7 @@ import CircularProgress from 'material-ui/CircularProgress';
 import RaisedButton from 'material-ui/RaisedButton';
 import injectTapEventPlugin from 'react-tap-event-plugin';
 
+import MixerControl from './MixerControl';
 import Footer from './Footer';
 import songPromise from './song';
 
@@ -60,6 +61,7 @@ class App extends Component {
           </RaisedButton>
           <RaisedButton onClick={() => this.clock.stop()}>Stop!</RaisedButton>
 
+          <MixerControl mixer={this.mixer} />
           <Footer />
         </div>
       </MuiThemeProvider>
@@ -79,6 +81,8 @@ class App extends Component {
       window.addEventListener('keydown', song.keydown);
 
       this.clock = song.clock;
+
+      this.mixer = song.mixer;
 
       this.setState({
         loaded: true

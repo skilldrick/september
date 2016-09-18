@@ -682,16 +682,20 @@ class Song {
   }
 }
 
+const round = (value) => Math.round(value * 10) / 10;
+
+const ratioToDb = (ratio) => round(20 * Math.log10(ratio), 1);
+
+const dbToRatio = (db) => round(Math.pow(10, db / 20), 1);
+
 class Channel extends Node {
   constructor(info) {
     super();
     this.name = info.name;
     this.node = info.node;
-    this.gain = createGain(1);
 
-    if (typeof info.gain == 'number') {
-      this.setGain(info.gain);
-    }
+    this.gain = createGain();
+    this.setGain(info.gain);
 
     connect(this.node, this.gain, this.output);
 
@@ -700,6 +704,18 @@ class Channel extends Node {
 
   setGain(gain) {
     this.gain.gain.value = gain;
+  }
+
+  setGainDb(db) {
+    this.setGain(dbToRatio(db))
+  }
+
+  getGain() {
+    return this.gain.gain.value;
+  }
+
+  getGainDb() {
+    return ratioToDb(this.getGain());
   }
 
   mute() {
@@ -720,6 +736,12 @@ class Mixer extends Node {
     this.masterGain = createGain(1);
 
     this.channels = nodes.map(info => {
+      const defaults = {
+        gain: 1
+      };
+
+      return Object.assign(defaults, info);
+    }).map(info => {
       const channel = new Channel(info);
 
       if (info.fx) {
@@ -805,15 +827,16 @@ export default Promise.all([
   const fxChain1 = new FxChain(buffers.impulse);
   fxChain1.connectNodes(['reverb', 'delay', 'compressor']);
   fxChain1.output.gain.value = 2;
+  const fxChain = fxChain1;
 
   const mixer = new Mixer([
     { name: 'Synth', node: synthNotes, gain: 0.2, fx: fxChain1 },
-    { name: 'September Vocals', node: septemberVocals, fx: fxChain1 },
-    { name: 'Cissy Beat', node: cissyBeat },
-    { name: 'Cissy Bass', node: cissyBass },
     { name: 'Chic', node: chic, fx: fxChain1 },
     { name: 'Mellotron', node: mellotron, gain: 0.15, fx: fxChain1 },
-    { name: 'Drum 808', node: drum808 }
+    { name: 'Cissy Bass', node: cissyBass },
+    { name: 'Cissy Beat', node: cissyBeat },
+    { name: 'Drum 808', node: drum808 },
+    { name: 'September Vocals', node: septemberVocals, gain: 1.5, fx: fxChain1 },
   ], buffers);
 
   connect(mixer, ctx.destination);
@@ -853,7 +876,9 @@ export default Promise.all([
 
   return {
     clock,
-    keydown
+    keydown,
+    fxChain,
+    mixer
   };
 });
 
