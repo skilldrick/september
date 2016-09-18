@@ -25,12 +25,22 @@ export default class MixerControl extends Component {
       />);
     });
 
+    const busControls = this.props.mixer.busses.map((el, i) => {
+      return (<ChannelControl
+        onChange={(val) => this.props.mixer.busses[i].setGainDb(val) }
+        defaultValue={el.getGainDb()}
+        label={el.name}
+        key={i}
+      />);
+    });
+
     return (
       <div style={Object.assign({
         display: 'flex',
         flexWrap: 'wrap'
       }, this.props.style)}>
         {channelControls}
+        {busControls}
       </div>
     );
 
@@ -95,6 +105,7 @@ class ChannelControl extends Component {
         <p style={this.labelStyle}>{this.state.value}</p>
 
         <IconButton
+          disabled={!this.props.toggleSolo}
           onClick={this.props.toggleSolo}
           style={this.props.solo ? this.soloStyle : {}}
         >
@@ -104,6 +115,7 @@ class ChannelControl extends Component {
         </IconButton>
 
         <IconButton
+          disabled={!this.props.toggleMute}
           onClick={this.props.toggleMute}
           style={this.props.mute ? this.muteStyle : {}}
         >
