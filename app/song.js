@@ -165,7 +165,7 @@ class CissyBass extends Node {
       decay: 0.1,
       sustain: 0.6,
       release: 0.1
-    }, [1,0,0.5,0.6,0.1]);
+    }, [1,1,0,0.6,0.1,0.1,0.1]);
 
     this.synthGain = createGain();
 
@@ -173,7 +173,7 @@ class CissyBass extends Node {
     const filter = createFilter(250);
     filter.type = 'peaking';
     window.filter = filter;
-    const compressor = createDynamicsCompressor();
+    const compressor = createDynamicsCompressor({ threshold: -24, ratio: 6 });
 
     connect(this.sampler, filter, compressor, this.output);
     connect(this.synth, this.synthGain, filter, compressor, this.output);
@@ -688,20 +688,18 @@ const ratioToDb = (ratio) => round(20 * Math.log10(ratio), 1);
 
 const dbToRatio = (db) => round(Math.pow(10, db / 20), 1);
 
-class Channel extends Node {
+// Common base class for channel-like things
+class ChannelBase extends Node {
   constructor(info) {
     super();
     this.name = info.name;
-    this.node = info.node;
 
-    this.gain = createGain();
+    this.channelGain = createGain();
     this.setGain(info.gain);
-
-    connect(this.node, this.gain, this.output);
   }
 
   setGain(gain) {
-    this.gain.gain.value = gain;
+    this.channelGain.gain.value = gain;
   }
 
   setGainDb(db) {
@@ -709,7 +707,7 @@ class Channel extends Node {
   }
 
   getGain() {
-    return this.gain.gain.value;
+    return this.channelGain.gain.value;
   }
 
   getGainDb() {
@@ -717,13 +715,42 @@ class Channel extends Node {
   }
 }
 
+class Channel extends ChannelBase {
+  constructor(info) {
+    super(info);
+
+    this.node = info.node;
+    connect(this.node, this.channelGain, this.output);
+  }
+
+}
+
+//TODO: take list of fx
+class Bus extends ChannelBase {
+  constructor(info) {
+    super(info);
+
+    this.fxChain = info.fx;
+    this.key = info.key;
+    connect(this.input, this.fxChain, this.channelGain, this.output);
+  }
+}
+
 class Mixer extends Node {
-  constructor(nodes, buffers) {
+  constructor(options) {
     super();
 
     this.masterGain = createGain(1);
 
-    this.channels = nodes.map(info => {
+    this.busses = options.busses.map(info => {
+      const bus = new Bus(info);
+      connect(bus, this.masterGain);
+      return bus;
+    });
+
+    this.busMap = _.fromPairs(this.busses.map(bus => [bus.key, bus]));
+
+    this.channels = options.channels.map(info => {
       const defaults = {
         gain: 1
       };
@@ -732,8 +759,8 @@ class Mixer extends Node {
     }).map(info => {
       const channel = new Channel(info);
 
-      if (info.fx) {
-        connect(channel, info.fx, this.masterGain);
+      if (info.bus) {
+        connect(channel, this.busMap[info.bus]);
       } else {
         connect(channel, this.masterGain);
       }
@@ -741,8 +768,8 @@ class Mixer extends Node {
       return channel;
     });
 
-    this.soloState = nodes.map(_ => false);
-    this.muteState = nodes.map(_ => false);
+    this.soloState = options.channels.map(_ => false);
+    this.muteState = options.channels.map(_ => false);
 
     connect(this.masterGain, this.output);
   }
@@ -786,13 +813,6 @@ class Mixer extends Node {
       this.enableChannels(this.channels);
       this.disableChannels(muteChannels);
     }
-  }
-}
-
-class Bus extends Node {
-  constructor() {
-    super();
-
   }
 }
 
@@ -841,27 +861,27 @@ export default Promise.all([
   });
 
 
-  // busses are a list of fx that can be individually bypassed
-  //const busA = new Bus
   //FX need to have a "reflection" API so you can know which knobs to twiddle,
   //should also include defaults values and descriptions and ranges for values?
-  //
-  //TODO: make fx only affect certain channels
-  //
   const fxChain1 = new FxChain(buffers.impulse);
   fxChain1.connectNodes(['reverb', 'delay', 'compressor']);
-  fxChain1.output.gain.value = 2;
   const fxChain = fxChain1;
 
-  const mixer = new Mixer([
-    { name: 'Synth', node: synthNotes, gain: 0.2, fx: fxChain1 },
-    { name: 'Chic', node: chic, fx: fxChain1 },
-    { name: 'Mellotron', node: mellotron, gain: 0.15, fx: fxChain1 },
-    { name: 'Cissy Bass', node: cissyBass },
-    { name: 'Cissy Beat', node: cissyBeat },
-    { name: 'Drum 808', node: drum808 },
-    { name: 'September Vocals', node: septemberVocals, gain: 1.5, fx: fxChain1 },
-  ], buffers);
+  const mixer = new Mixer({
+    channels: [
+      { name: 'Synth', node: synthNotes, gain: 0.2, bus: 'A' },
+      { name: 'Chic', node: chic, fx: fxChain1 },
+      { name: 'Mellotron', node: mellotron, gain: 0.25, bus: 'A' },
+      { name: 'Cissy Bass', node: cissyBass },
+      { name: 'Cissy Beat', node: cissyBeat },
+      { name: 'Drum 808', node: drum808 },
+      { name: 'Vocals', node: septemberVocals, gain: 1.5, bus: 'A' }
+    ],
+    busses: [
+      { name: 'Bus A', key: 'A', gain: 2, fx: fxChain1 },
+      //{ name: 'Bus B', key: 'B' },
+    ]
+  });
 
   connect(mixer, ctx.destination);
   window.mixer = mixer;

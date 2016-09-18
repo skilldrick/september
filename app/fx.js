@@ -169,7 +169,7 @@ export default class FxChain extends Node {
       multiplier: new Multiplier(0.6),
       tremolo: new Tremolo(8, 0.8),
       distortion: new Distortion(1.5),
-      delay: new FeedbackDelay(),
+      delay: new FeedbackDelay({ feedback: 0.3, cutoff: 2500 }),
       reverb: new Reverb(0.2, impulse),
       compressor: createDynamicsCompressor({ threshold: -12, ratio: 3 }),
       am: new AM(2000, 1)
