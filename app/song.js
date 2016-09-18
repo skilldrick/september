@@ -164,8 +164,8 @@ class CissyBass extends Node {
       attack: 0.001,
       decay: 0.1,
       sustain: 0.6,
-      release: 0.2
-    }, [1,0,0.5,0.3,0.1]);
+      release: 0.1
+    }, [1,0,0.5,0.6,0.1]);
 
     this.synthGain = createGain();
 
@@ -199,7 +199,7 @@ class CissyBass extends Node {
     if (semitone && semitone !== "  ") {
       this.sampler.playOffset(16.69, when, 0.17, gain, semitoneToRate(-8.8 + +semitone), 0.01, 0.01)
       this.synthGain.gain.value = 0.3 * gain;
-      this.synth.playNote(semitone - 42, when, 0.1);
+      this.synth.playNote(semitone - 42, when, 0.05);
     }
   }
 }
