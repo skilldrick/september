@@ -17,7 +17,6 @@ import Maracas from 'maracas';
 import Claves from 'claves';
 import { Distortion, FeedbackDelay, Reverb } from 'sine/fx';
 
-import FxChain from './fx';
 import { AM, Multiplier, StereoChorus } from './fx';
 
 const loadBuffers = (fileNames) => {
@@ -726,14 +725,47 @@ class Channel extends ChannelBase {
 
 }
 
-//TODO: take list of fx
+//FX need to have a "reflection" API so you can know which knobs to twiddle,
+//should also include defaults values and descriptions and ranges for values?
+class FxChain extends Node {
+  constructor(fx, initialOrder) {
+    super();
+    this.fx = fx;
+    this.connectNodes(initialOrder);
+  }
+
+  disconnectNodes() {
+    this.input.disconnect();
+
+    Object.keys(this.fx).forEach(key => {
+      this.fx[key].disconnect();
+    });
+  }
+
+  connectNodes(nodeNames=[]) {
+    // Disconnect all nodes so they can be re-connected
+    this.disconnectNodes();
+
+    connect(
+      this.input,
+      ...nodeNames.map(name => this.fx[name]),
+      this.output
+    );
+  }
+}
+
 class Bus extends ChannelBase {
   constructor(info) {
     super(info);
 
-    this.fxChain = info.fx;
     this.key = info.key;
     this.bus = info.bus;
+
+    if (info.fx) {
+      this.fxChain = new FxChain(info.fx, info.fxOrder);
+    } else {
+      this.fxChain = createGain(1);
+    }
 
     connect(this.input, this.fxChain, this.channelGain, this.output);
   }
@@ -743,7 +775,7 @@ class Mixer extends Node {
   constructor(options) {
     super();
 
-    this.masterBus = new Bus({ key: 'Master', name: 'Master', fx: createGain(1), bus: 'Out' });
+    this.masterBus = new Bus({ key: 'Master', name: 'Master', bus: 'Out' });
 
     this.busses = options.busses.map(info => {
       const bus = new Bus(info);
@@ -864,16 +896,10 @@ export default Promise.all([
   });
 
 
-  //FX need to have a "reflection" API so you can know which knobs to twiddle,
-  //should also include defaults values and descriptions and ranges for values?
-  const fxChain1 = new FxChain(buffers.impulse);
-  fxChain1.connectNodes(['reverb', 'delay', 'compressor']);
-  const fxChain = fxChain1;
-
   const mixer = new Mixer({
     channels: [
       { name: 'Synth', node: synthNotes, gain: 0.2, bus: 'A' },
-      { name: 'Chic', node: chic, fx: fxChain1 },
+      { name: 'Chic', node: chic, bus: 'A' },
       { name: 'Mellotron', node: mellotron, gain: 0.25, bus: 'A' },
       { name: 'Cissy Bass', node: cissyBass },
       { name: 'Cissy Beat', node: cissyBeat },
@@ -881,7 +907,13 @@ export default Promise.all([
       { name: 'Vocals', node: septemberVocals, gain: 1.5, bus: 'A' }
     ],
     busses: [
-      { name: 'A', key: 'A', gain: 2, fx: fxChain1 },
+      {
+        name: 'A', key: 'A', gain: 2, fx: {
+          reverb: new Reverb(0.2, buffers.impulse),
+          delay: new FeedbackDelay({ feedback: 0.3, cutoff: 2500 }),
+          compressor: createDynamicsCompressor({ threshold: -12, ratio: 3 }),
+        }, fxOrder: ['reverb', 'delay', 'compressor']
+      },
       //{ name: 'B', key: 'B' },
     ]
   });
@@ -924,7 +956,6 @@ export default Promise.all([
   return {
     clock,
     keydown,
-    fxChain,
     mixer
   };
 });
