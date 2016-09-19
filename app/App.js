@@ -3,7 +3,8 @@ import React, { Component } from 'react';
 import { render } from 'react-dom';
 
 // material-ui components
-import { deepOrange500 } from 'material-ui/styles/colors';
+import { deepOrange500, deepOrange700 } from 'material-ui/styles/colors';
+import darkBaseTheme from 'material-ui/styles/baseThemes/darkBaseTheme';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import CircularProgress from 'material-ui/CircularProgress';
@@ -20,7 +21,7 @@ injectTapEventPlugin();
 
 const muiTheme = getMuiTheme({
   palette: {
-    accent1Color: deepOrange500,
+    primary1Color: deepOrange500,
   },
 });
 
