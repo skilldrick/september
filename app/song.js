@@ -441,7 +441,7 @@ class SeptemberVocals extends Node {
       ["E       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["F       ", "        ", "        ", "        "],
-      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "G       "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["E       ", "        ", "        ", "        "],
@@ -449,7 +449,7 @@ class SeptemberVocals extends Node {
       ["E       ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["F       ", "        ", "        ", "        "],
-      ["        ", "        ", "        ", "        "],
+      ["        ", "        ", "        ", "G       "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
       ["        ", "        ", "        ", "        "],
@@ -528,7 +528,8 @@ class SeptemberVocals extends Node {
       chorus4_C: { offset: 182.45, length: 7.4 },
       chorus4_D: { offset: 190, length: 3.7 },
       chorus4_E: { offset: 193.7, length: 3.7 },
-      chorus4_F: { offset: 197.4, length: 7 },
+      chorus4_F: { offset: 197.45, length: 3.3 },
+      chorus4_G: { offset: 200.75, length: 3.7 },
     });
 
     window.sept = this.sampler;
@@ -753,8 +754,8 @@ export default Promise.all([
   window.mixer = mixer;
 
   console.log(clock);
-  //clock.beat = 14 * 4;
-  //clock.timeInBeats = 14 * 4;
+  //clock.beat = 90 * 4;
+  //clock.timeInBeats = 90 * 4;
 
   const keydown = (event) => {
     const keys = [90, 83, 88, 68, 67, 86, 71, 66, 72, 78, 74, 77, 188];
